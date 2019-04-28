@@ -14,7 +14,7 @@ import scipy as sp
 from biomass_preprocessing import MergeInventoryAndCounty
 #from swis_preprocessing import LoadAndCleanSWIS #TODO
 
-DATA_DIR = "/Users/anayahall/projects/grapevine/data"
+DATA_DIR = "/Users/anayahall/projects/compopt/data"
 
 
 ############################################################
@@ -440,7 +440,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     output_df = pd.DataFrame.from_dict(county_output, orient='index')
     intake_df = pd.DataFrame.from_dict(fac_intake, orient='index')
 
-    os.chdir("/Users/anayahall/projects/grapevine/results")
+    os.chdir("/Users/anayahall/projects/compopt/results")
 
     if savedf == True:
         # Save output for batch processing

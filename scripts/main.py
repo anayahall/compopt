@@ -12,8 +12,6 @@ import scipy as sp
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
 
-
-
 print("-------------------------------------")
 
 print("s **** scenario: food waste under 25 percent diversion goals")
