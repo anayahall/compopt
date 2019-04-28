@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+data/
+results/
+plots/
+maps/
+.ipynb_checkpoints/
+scripts/.DS_Store
