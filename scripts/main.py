@@ -14,7 +14,7 @@ from compostLP import Haversine, Distance, Fetch, SolveModel
 
 print("-------------------------------------")
 
-print("s **** scenario: food waste under 20 disposal rate ")
+print("s **** scenario: food waste under 25 disposal rate ")
 t1 = SolveModel(scenario = "food_25d", feedstock = "food",  
 	disposal_rate = 0.25)
 
@@ -29,12 +29,12 @@ t3 = SolveModel(scenario = "food_75d", feedstock = "food",
 	disposal_rate = 0.75)
 
 print("-------------------------------------")
-print("s **** scenario: all food waste")
+print("s **** scenario: food waste")
 t4 = SolveModel(scenario = "food_100d", feedstock = "food")
 
 
 
-print("s **** scenario: all food waste, 20 percent recovered")
+print("s **** scenario:  food waste, 20 percent recovered")
 t5 = SolveModel(scenario = "food_20r", feedstock = "food", 
 	fw_reduction = 0.2)
 print("-------------------------------------")

@@ -75,9 +75,7 @@ counties = counties[((counties['feedstock'] == "FOOD") |
 
 ###############################################################
 
-# SUBSET out four counties
-counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-    (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+
 
 ####MAKE DICTIONARY HERE
 # cdict = dict(zip(counties['COUNTY'], counties['disposal']))
@@ -95,11 +93,7 @@ facilities = facilities.to_crs(epsg=4326)
 
 # facilities = facilities[['SwisNo', 'AcceptedWa', 'County', 'cap_m3', 'geometry']].copy()
 
-# # SUBSET out four counties
-facilities = facilities[(facilities['County'] == "San Diego") | (facilities['County'] == "Orange") | 
-    (facilities['County'] == "Imperial")].copy()
-# too many, just select first 5
-facilities = facilities[0:5]
+
 
 ############################################################
 # RANGELANDS 
@@ -122,17 +116,32 @@ rangelands['capacity_m3'] = rangelands['area_ha'] * 63.5 # use this metric for m
 # estimate centroid
 rangelands['centroid'] = rangelands['geometry'].centroid 
 
-# # # SUBSET
-subset = ["los", "slo", "sbd"]
-rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+
+############################################################
+# SUBSET!! for testing functions
+############################################################# 
+# SUBSET out four counties
+# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+
+
+# # # SUBSET out four counties
+# facilities = facilities[(facilities['County'] == "San Diego") | (facilities['County'] == "Orange") | 
+#     (facilities['County'] == "Imperial")].copy()
+# # too many, just select first 5
+# facilities = facilities[0:5]
+
+# # # # SUBSET
+# subset = ["los", "slo", "sbd"]
+# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
 
 
 # raise Exception("data loaded - pre optimization")
 
-
 ############################################################
-# CROPLANDS 
-#############################################################  
+# CROPLANDS
+#############################################################
+ 
 # # Import croplands
 # cropmap = gpd.read_file(opj(DATA_DIR, 
 #   "raw/Crop__Mapping_2014/Crop__Mapping_2014.shp"))
@@ -281,7 +290,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
         counties = counties[(counties['feedstock'] == "MANURE")]
         counties['disposal'] = counties['disposal_wm3'] 
 
-    counties['disposal_cap'] = (1 - disposal_rate) * counties['disposal']
+    counties['disposal_cap'] = (disposal_rate) * counties['disposal']
 
     #supply constraint
     for county in counties['COUNTY']:
