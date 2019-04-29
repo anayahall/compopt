@@ -14,40 +14,61 @@ from compostLP import Haversine, Distance, Fetch, SolveModel
 
 print("-------------------------------------")
 
-print("s **** scenario: food waste under 25 percent diversion goals")
-x3 = SolveModel(scenario = "food25_nl", feedstock = "food",  
-	diversion_rate = 0.25, landfill_ef = 0)
+print("s **** scenario: food waste under 20 disposal rate ")
+t1 = SolveModel(scenario = "food_25d", feedstock = "food",  
+	disposal_rate = 0.25)
 
-print("s **** scenario: food waste under 50 percent diversion goals")
-x2 = SolveModel(scenario = "food50_nl", feedstock = "food", 
-	diversion_rate = 0.5, landfill_ef = 0)
-
-print("-------------------------------------")
-
-print("s **** scenario: food waste under 75 percent diversion goals")
-x3 = SolveModel(scenario = "food75_nl", feedstock = "food",  
-	diversion_rate = 0.75, landfill_ef = 0)
-
-print("-------------------------------------")
-print("s **** scenario: ALL food waste")
-x1 = SolveModel(scenario = "food_100_nl", feedstock = "food", landfill_ef = 0)
-
-
-print("s **** scenarrio: Food and green waste")
-x0 = SolveModel(scenario = "food_and_green", feedstock = "food_and_green", landfill_ef = 0)
-
-raise Exception(" load function and run set of scenarios")
-
+print("s **** scenario: food waste under 50 percent disposal rate")
+t2 = SolveModel(scenario = "food_50d", feedstock = "food", 
+	disposal_rate = 0.5)
 
 print("-------------------------------------")
 
-print("next scenario: food waste ignoring facillity capacity limitations")
-x4 = SolveModel(scenario = "food_nocap", feedstock = "food", ignore_capacity = True)
+print("s **** scenario: food waste under 75 percent disposal rate")
+t3 = SolveModel(scenario = "food_75d", feedstock = "food",  
+	disposal_rate = 0.75)
+
+print("-------------------------------------")
+print("s **** scenario: all food waste")
+t4 = SolveModel(scenario = "food_100d", feedstock = "food")
+
+
+
+print("s **** scenario: all food waste, 20 percent recovered")
+t5 = SolveModel(scenario = "food_20r", feedstock = "food", 
+	fw_reduction = 0.2)
+print("-------------------------------------")
+print("-------------------------------------")
+print("-------------------------------------")
+
+print("s **** scenarrio: Food and green waste with 20 percent fw reduction")
+p0 = SolveModel(scenario = "fg_20r", feedstock = "food_and_green", 
+	fw_reduction = 0.2)
+
+print("s ******* scenario: food and green waste")
+p1 = SolveModel(scenario = "fg", feedstock = "food_and_green")
+
+print("s ******* scenario: food and green waste at 50 percent disposal")
+p2 = SolveModel(scenario = "fg_50d", feedstock = "food_and_green", 
+	disposal_rate= .5)
+
+print("s ******* scenario: food and green waste at 25 percent disposal")
+p3 = SolveModel(scenario = "fg_25d", feedstock = "food_and_green", 
+	disposal_rate= .25)
+
+
+# raise Exception(" load function and run set of scenarios")
+
 
 print("-------------------------------------")
 
-print("next scenario: food & green waste ignoring facillity capacity limitations")
-x5 = SolveModel(scenario = "fg_nocap", feedstock = "food_and_green", ignore_capacity = True)
+# print("next scenario: food waste ignoring facillity capacity limitations")
+# x4 = SolveModel(scenario = "food_nocap", feedstock = "food", ignore_capacity = True)
+
+# print("-------------------------------------")
+
+# print("next scenario: food & green waste ignoring facillity capacity limitations")
+# x5 = SolveModel(scenario = "fg_nocap", feedstock = "food_and_green", ignore_capacity = True)
 
 
 print("-------------------------------------")
@@ -57,9 +78,12 @@ print("-------------------------------------")
 
 # also need to do sensitivitys, for these just need the main results I think, not full df?
 print("STARTING SENSTIVITY RUNS")
-s1 = SolveModel(scenario = "S_low", feedstock = "food_and_green", 
-		seq_f = -56)
 
-s2 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
+
+s2 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
+		kilometres_to_emissions = 0.69)
+
+
+s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
 		seq_f = -160)
 

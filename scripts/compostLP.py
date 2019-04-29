@@ -150,22 +150,25 @@ rangelands = rangelands[rangelands['county_nam'].isin(subset)]
 
 def SolveModel(scenario, feedstock = 'food_and_green', savedf = True, 
     counties = counties, landuse = rangelands, facilities = facilities,
-    fw_reduction = 0,
-    ignore_capacity = False,
+    # Scenario settings
+    disposal_rate = 1,   # percent of waste to include in run
+    fw_reduction = 0,    # food waste reduced/recovered pre-disposal
+    ignore_capacity = False, # toggle to ignore facility capacity info
+    
     #Parameters
-    landfill_ef = 315, #kg CO2e / m3
-    compost_ef = 0,
+    landfill_ef = 315, #kg CO2e / m3 = emissions from waste remaining in county
+    #compost_ef = 0,  
     kilometres_to_emissions = 0.37, # kg CO2e/ m3 - km for 35mph speed 
     kilometres_to_emissions_10 = 1, # TODO
-    spreader_ef = 1.854, # kg CO2e / m3
-    seq_f = -108, # kg CO2e / m3
-    # soil_emis = 68, 
-    process_emis = 11, 
+    spreader_ef = 1.854, # kg CO2e / m3 = emissions from spreading compost
+    seq_f = -108, # kg CO2e / m3 = sequestration rate
+    # soil_emis = 68, # ignore now, included in seq?
+    process_emis = 11, # kg CO2e/ m3 = emisisons at facility from processing compost
     waste_to_compost = 0.58, #% volume change from waste to compost
-    c2f_trans_cost = .206, #$/m3-km
-    f2r_trans_cost = .206, #$/m3-km
-    spreader_cost = 5.8, #$/m3
-    detour_factor = 1.4, #chosen based on literature)
+    c2f_trans_cost = .206, #$/m3-km # transit costs
+    f2r_trans_cost = .206, #$/m3-km # transit costs
+    spreader_cost = 5.8, #$/m3 # cost to spread
+    detour_factor = 1.4, #chosen based on literature - multiplier on haversine distance
     ):
 
 
@@ -226,8 +229,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             # emissions due to processing compost at facility
             obj += x['quantity']*process_emis
 
-
-
     # emissions due to waste remaining in facility
     # for facility in facilities['SwisNo']:
     #     temp = 0
@@ -280,6 +281,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
         counties = counties[(counties['feedstock'] == "MANURE")]
         counties['disposal'] = counties['disposal_wm3'] 
 
+    counties['disposal_cap'] = (1 - disposal_rate) * counties['disposal']
 
     #supply constraint
     for county in counties['COUNTY']:
@@ -289,7 +291,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             x    = c2f[county][facility]
             temp += x['quantity']
             cons += [0 <= x['quantity']]              #Quantity must be >=0
-        cons += [temp <= Fetch(counties, 'COUNTY', county, 'disposal')]   #Sum for each county must be <= county production
+        cons += [temp <= Fetch(counties, 'COUNTY', county, 'disposal_cap')]   #Sum for each county must be <= county production
 
     # for scenarios in which we want to ignore existing infrastructure limits on capacity
     if ignore_capacity == False:
