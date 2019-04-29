@@ -29,7 +29,7 @@ t3 = SolveModel(scenario = "food_75d", feedstock = "food",
 	disposal_rate = 0.75)
 
 print("-------------------------------------")
-print("s **** scenario: food waste")
+print("s **** scenario:  food waste")
 t4 = SolveModel(scenario = "food_100d", feedstock = "food")
 
 
@@ -86,4 +86,19 @@ s2 = SolveModel(scenario = "t_high", feedstock = "food_and_green",
 
 s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
 		seq_f = -160)
+
+print("s ******* scenario: low cost")
+s3 = SolveModel(scenario = "low cost", feedstock = "food_and_green", 
+		spreader_cost = 3)
+
+
+print("s ******* scenario: process emis high")
+s4 = SolveModel(scenario = "P_high", feedstock = "food_and_green", 
+		process_emis = -16)
+
+## test capacity limits
+print("s ******* scenario: double capacity")
+s4 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
+		capacity_multiplier = 2)
+
 

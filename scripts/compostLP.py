@@ -163,6 +163,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     disposal_rate = 1,   # percent of waste to include in run
     fw_reduction = 0,    # food waste reduced/recovered pre-disposal
     ignore_capacity = False, # toggle to ignore facility capacity info
+    capacity_multiplier = 1,
     
     #Parameters
     landfill_ef = 315, #kg CO2e / m3 = emissions from waste remaining in county
@@ -302,6 +303,8 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             cons += [0 <= x['quantity']]              #Quantity must be >=0
         cons += [temp <= Fetch(counties, 'COUNTY', county, 'disposal_cap')]   #Sum for each county must be <= county production
 
+    facility_capacity = capacity_multiplier * facilities['cap_m3']
+
     # for scenarios in which we want to ignore existing infrastructure limits on capacity
     if ignore_capacity == False:
         # otherwise, use usual demand constraints
@@ -311,7 +314,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
                 x = f2r[facility][rangeland]
                 temp += x['quantity']
                 cons += [0 <= x['quantity']]              #Each quantity must be >=0
-            cons += [temp <= Fetch(facilities, 'SwisNo', facility, 'cap_m3')]  # sum of each facility must be less than capacity        
+            cons += [temp <= Fetch(facilities, 'SwisNo', facility, facility_capacity)]  # sum of each facility must be less than capacity        
 
     # end-use  constraint capacity
     for rangeland in rangelands['OBJECTID']:
@@ -363,6 +366,8 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     print("*********************************************")
     prob = cp.Problem(cp.Minimize(obj), cons)
     val = prob.solve(gp=False)
+    now = datetime.datetime.now()
+    print(str(now))
     print("Optimal object value (kg CO2eq) = {0}".format(val))
 
     ############################################################
@@ -409,14 +414,14 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
     # Quantity moved out of county
     county_output = {}
-    print("{0:15} {1:15} {2:15}".format("County","Facility","Amount"))
+    # print("{0:15} {1:15} {2:15}".format("County","Facility","Amount"))
     for county in counties['COUNTY']:
         temp = 0
         county_output[county] = {}
         for facility in facilities['SwisNo']:
             x = c2f[county][facility]['quantity'].value
             temp += x
-            print("{0:15} {1:15} {2:15}".format(county,facility,x))
+            # print("{0:15} {1:15} {2:15}".format(county,facility,x))
         county_output[county]['volume'] = int(round(temp))
 
     # Facility intake 

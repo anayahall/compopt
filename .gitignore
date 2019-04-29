@@ -8,3 +8,4 @@ plots/
 maps/
 .ipynb_checkpoints/
 scripts/.DS_Store
+scripts/old/compostsites.R
