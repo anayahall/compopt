@@ -1,39 +1,35 @@
 
-# coding: utf-8
-
-# In[2]:
-
-# Reading in Rasters
-# Rasterio tutorial here: 
-#https://automating-gis-processes.github.io/CSC18/lessons/L6/reading-raster.html
-
-# First, load packages
 import pandas as pd
 import os
-import fiona
-import rasterio
-
 import numpy as np
-import shapely as sp
 import geopandas as gpd
-from fiona.crs import from_epsg
-import pycrs
+from os.path import join as opj
 
-os.chdir("/Users/anayahall/projects/grapevine")
-
-from fxns import epsg_meters
+DATA_DIR = "/Users/anayahall/projects/compopt/data"
 
 
-# os.chdir("/Volumes/My Passport/CAland")
-rangelands = gpd.read_file("data/raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp")
-rangelands.crs
+rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
+rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
+rangelands['area_ha'] = rangelands['Shape_Area']/10000 # convert area in m2 to hectares
+rangelands['capacity_m3'] = rangelands['area_ha'] * 63.5 # use this metric for m3 unit framework
 
-# get area in meters
-rangelands["area_km"] = rangelands['geometry'].area/ 10**6
+rangelands = rangelands[['county_nam', 'area_ha', 'capacity_m3']]
+
+countyIDs = pd.read_csv(opj(DATA_DIR, "interim/CA_FIPS_wcode.csv"), 
+    names = ['FIPS', 'COUNTY', 'State', 'county_nam'])
+countyIDs = countyIDs[['COUNTY', 'county_nam']]
+rangelands = pd.merge(rangelands, countyIDs, on = 'county_nam')
+
+rangelands = rangelands[['COUNTY', 'area_ha', 'capacity_m3']]
 
 
-# estimate centroid
-rangelands['centroid'] = rangelands['geometry'].centroid
+CA = gpd.read_file(opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"))
+CA= CA.to_crs(epsg=4326)
+CA['county_centroid'] = CA['geometry'].centroid
+CA['COUNTY'] = CA['NAME']
+CA = CA[['COUNTY', 'county_centroid']]
 
 
-### CONVERT LAND AREA TO VOLUME OF COMPOST CAPACITY (*33.6cuyd/acre)
+rangelands = pd.merge(CA, rangelands, on = 'COUNTY')
+
+

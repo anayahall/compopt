@@ -11,6 +11,8 @@ import scipy as sp
 
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
+raise Exception(" load function and run set of scenarios")
+
 
 print("-------------------------------------")
 
@@ -93,7 +95,7 @@ s3 = SolveModel(scenario = "low cost", feedstock = "food_and_green",
 
 
 print("s ******* scenario: process emis high")
-s4 = SolveModel(scenario = "P_high", feedstock = "food_and_green", 
+s5 = SolveModel(scenario = "P_high", feedstock = "food_and_green", 
 		process_emis = -16)
 
 ## test capacity limits
@@ -102,3 +104,5 @@ s4 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green",
 		capacity_multiplier = 2)
 
 
+s6 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
+		c2f_trans_cost = 1.2)
