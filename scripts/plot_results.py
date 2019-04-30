@@ -75,7 +75,9 @@ for county in data['County']:
 
 
 
+# general structure
 
+# cost = [q1]*trans_cost_c + [q2]*(trans_cost_h+apply_cost)
 
 
 

@@ -73,26 +73,16 @@ counties = counties[((counties['feedstock'] == "FOOD") |
     (counties['year'] == 2014)].copy()
 # counties = counties[(counties['feedstock'] == "FOOD") & (counties['year'] == 2014)].copy()
 
-###############################################################
-
-
-
-####MAKE DICTIONARY HERE
-# cdict = dict(zip(counties['COUNTY'], counties['disposal']))
-
-
 ############################################################
 # COMPOSTING/PROCESSING FACILITIES
 ############################################################
 
 
-# Mini gdfs of facilites (location and capacity)
+# Load facility info
 facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
-facilities = facilities.to_crs(epsg=4326)
-# facilities.head(8)
+# facilities = facilities.to_crs(epsg=4326)
 
 # facilities = facilities[['SwisNo', 'AcceptedWa', 'County', 'cap_m3', 'geometry']].copy()
-
 
 
 ############################################################
@@ -101,49 +91,40 @@ facilities = facilities.to_crs(epsg=4326)
 # Import rangelands
 rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
 rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
-rangelands['area_ha'] = rangelands['Shape_Area']/10000 # convert area in m2 to hectares
-rangelands['capacity_m3'] = rangelands['area_ha'] * 63.5 # use this metric for m3 unit framework
 
-rangelands = rangelands[['county_nam', 'area_ha', 'capacity_m3']]
-
+# Fix county names! 
 countyIDs = pd.read_csv(opj(DATA_DIR, "interim/CA_FIPS_wcode.csv"), 
     names = ['FIPS', 'COUNTY', 'State', 'county_nam'])
 countyIDs = countyIDs[['COUNTY', 'county_nam']]
 rangelands = pd.merge(rangelands, countyIDs, on = 'county_nam')
 
-rangelands = rangelands[['COUNTY', 'area_ha', 'capacity_m3']]
+# convert area capacity into volume capacity
+rangelands['area_ha'] = rangelands['Shape_Area']/10000 # convert area in m2 to hectares
+rangelands['capacity_m3'] = rangelands['area_ha'] * 63.5 # use this metric for m3 unit framework
+# rangelands['capacity_ton'] = rangelands['area_ha'] * 37.1 # also calculated for tons unit framework
 
-
-CA = gpd.read_file(opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"))
-CA= CA.to_crs(epsg=4326)
-CA['county_centroid'] = CA['geometry'].centroid
-CA['COUNTY'] = CA['NAME']
-CA = CA[['COUNTY', 'county_centroid']]
-
-
-rangelands = pd.merge(CA, rangelands, on = 'COUNTY')
-
-
+# estimate centroid
+rangelands['centroid'] = rangelands['geometry'].centroid 
 
 
 ############################################################
 # SUBSET!! for testing functions
 ############################################################# 
 # # SUBSET out four counties
-# # counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-# #     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
-# counties = counties[0:15]
+# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+counties = counties[0:15]
 
-# # # SUBSET out four counties
-# # facilities = facilities[(facilities['County'] == "San Diego") | (facilities['County'] == "Orange") | 
-# #     (facilities['County'] == "Imperial")].copy()
-# # too many, just select first 5
-# facilities = facilities[0:10]
+# # SUBSET out four counties
+# facilities = facilities[(facilities['County'] == "San Diego") | (facilities['County'] == "Orange") | 
+#     (facilities['County'] == "Imperial")].copy()
+# too many, just select first 5
+facilities = facilities[0:10]
 
-# # # # SUBSET
-# # subset = ["los", "slo", "sbd"]
-# # rangelands = rangelands[rangelands['county_nam'].isin(subset)]
-# rangelands = rangelands[0:15]
+# # # SUBSET
+# subset = ["los", "slo", "sbd"]
+# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+rangelands = rangelands[0:15]
 
 ############################################################
 # raise Exception("data loaded - pre optimization")
@@ -164,9 +145,8 @@ rangelands = pd.merge(CA, rangelands, on = 'COUNTY')
 
 
 ############################################################
-# OPTIMIZATION #################################
+# OPTIMIZATION MODEL       #################################
 ############################################################
-
 
 
 def SolveModel(scenario, feedstock = 'food_and_green', savedf = True, 
@@ -175,7 +155,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     disposal_rate = 1,   # percent of waste to include in run
     fw_reduction = 0,    # food waste reduced/recovered pre-disposal
     ignore_capacity = False, # toggle to ignore facility capacity info
-    capacity_multiplier = 1,
+    capacity_multiplier = 1, # can inflate capacity 
     
     #Parameters
     landfill_ef = 315, #kg CO2e / m3 = emissions from waste remaining in county
@@ -218,8 +198,8 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     for facility in facilities['SwisNo']:
         f2r[facility] = {}
         floc = Fetch(facilities, 'SwisNo', facility, 'geometry')
-        for rangeland in rangelands['COUNTY']:
-            rloc = Fetch(rangelands, 'COUNTY', rangeland, 'county_centroid')
+        for rangeland in rangelands['OBJECTID']:
+            rloc = Fetch(rangelands, 'OBJECTID', rangeland, 'centroid')
             f2r[facility][rangeland] = {}
             f2r[facility][rangeland]['quantity'] = cp.Variable()
             dist = Distance(floc,rloc)
@@ -263,7 +243,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
 
     for facility in facilities['SwisNo']:
-        for rangeland in rangelands['COUNTY']:
+        for rangeland in rangelands['OBJECTID']:
             x = f2r[facility][rangeland]
             applied_amount = x['quantity']
             # emissions due to transport of compost from facility to rangelands
@@ -324,14 +304,14 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
         # otherwise, use usual demand constraints
         for facility in facilities['SwisNo']:
             temp = 0
-            for rangeland in rangelands['COUNTY']:
+            for rangeland in rangelands['OBJECTID']:
                 x = f2r[facility][rangeland]
                 temp += x['quantity']
                 cons += [0 <= x['quantity']]              #Each quantity must be >=0
             cons += [temp <= Fetch(facilities, 'SwisNo', facility, 'facility_capacity')]  # sum of each facility must be less than capacity        
 
     # end-use  constraint capacity
-    for rangeland in rangelands['COUNTY']:
+    for rangeland in rangelands['OBJECTID']:
     	temp = 0
     	for facility in facilities['SwisNo']:
     		x = f2r[facility][rangeland]
@@ -339,7 +319,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             #TODO - is this constraint necessary - or repetitive of above
     		cons += [0 <= x['quantity']]				# value must be >=0
     	# rangeland capacity constraint (no more can be applied than 0.25 inches)
-    	cons += [temp <= Fetch(rangelands, 'COUNTY', rangeland, 'capacity_m3')]
+    	cons += [temp <= Fetch(rangelands, 'OBJECTID', rangeland, 'capacity_m3')]
 
 
     # balance facility intake to facility output
@@ -349,7 +329,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     	for county in counties['COUNTY']:
     		x = c2f[county][facility]
     		temp_in += x['quantity']	# sum of intake into facility from counties
-    	for rangeland in rangelands['COUNTY']:
+    	for rangeland in rangelands['OBJECTID']:
     		x = f2r[facility][rangeland]
     		temp_out += x['quantity']	# sum of output from facilty to rangeland
     	cons += [temp_out == waste_to_compost*temp_in]
@@ -366,7 +346,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
 
     # for facility in facilities['SwisNo']:
-    #     for rangeland in rangelands['COUNTY']:
+    #     for rangeland in rangelands['OBJECTID']:
     #         x = f2r[facility][rangeland]
     #         applied_amount = x['quantity']
     #         # emissions due to transport of compost from facility to rangelands
@@ -387,7 +367,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     ############################################################
     # print("{0:15} {1:15}".format("Rangeland","Amount"))
     # for facility in facilities['SwisNo']:
-    #     for rangeland in rangelands['COUNTY']:
+    #     for rangeland in rangelands['OBJECTID']:
     #         print("{0:15} {1:15} {2:15}".format(facility,rangeland,f2r[facility][rangeland]['quantity'].value))
     ############################################################
 
@@ -407,7 +387,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
         cost_by_county[county]['cost'] = int(round(temp))
 
     for facility in facilities['SwisNo']:
-        for rangeland in rangelands['COUNTY']:
+        for rangeland in rangelands['OBJECTID']:
             x = f2r[facility][rangeland]
             applied_amount = x['quantity'].value
             # emissions due to transport of compost from facility to rangelands
@@ -452,7 +432,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
     # Rangeland area covered (ha) & applied amount by rangeland
     rangeland_app = {}
-    for rangeland in rangelands['COUNTY']:
+    for rangeland in rangelands['OBJECTID']:
         applied_volume = 0
         area = 0
         rangeland_app[rangeland] = {}
@@ -484,19 +464,11 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 # r = pd.merge(rangelands, rdf, on = "COUNTY")
 # fac_df = pd.merge(facilities, fac_df, on = "SwisNo")
 
+# Run test
+x, y, z = SolveModel(scenario = 'base')
 
 
-
-
-
-# scenario runs
-# change transport emissions
-# sensitivity runs - 
-
-
-
-
-
+print("model loaded")
 ############################################################
 
 

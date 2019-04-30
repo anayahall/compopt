@@ -73,7 +73,9 @@ facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 ######################################################################
 
 # Import rangelands
+# (partially dissolved subset)
 # rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/grazingland_dis/CA_grazingland.shp"))
+# (all individual rangelands)
 rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
 rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
 
@@ -127,28 +129,28 @@ for facility in facilities['SwisNo']:
         print(f2r[facility][r_string]['trans_dist'])
 
 
-avgDict = {}
+avgDict_f2r = {}
 for facility in f2r.keys():
-    print(facility)
+    # print(facility)
     temp = 0
-    avgDict[facility] = {}
-    avgDict[facility]['SwisNo'] = facility
+    avgDict_f2r[facility] = {}
+    avgDict_f2r[facility]['SwisNo'] = facility
     for rangeland in f2r[facility].keys():
         r_string = str(rangeland)
         temp += f2r[facility][r_string]['trans_dist']
         # print(temp) 
-    avgDict[facility]['avg_dist'] = temp*(1/116)
+    avgDict_f2r[facility]['avg_dist'] = temp*(1/116)
 
-avgDict = {}
+avgDict_c2f = {}
 for county in c2f.keys():
-    print(county)
+    # print(county)
     temp = 0
-    avgDict[county] = {}
-    avgDict[county]['COUNTY'] = county
+    avgDict_c2f[county] = {}
+    avgDict_c2f[county]['COUNTY'] = county
     for facility in c2f[county].keys():
         temp += c2f[county][facility]['trans_dist']
         # print(temp) 
-    avgDict[county]['avg_dist'] = temp*(1/109)
+    avgDict_c2f[county]['avg_dist'] = temp*(1/109)
 
 # fp = "/Users/anayahall/projects/compopt/data"
 
