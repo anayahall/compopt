@@ -11,7 +11,6 @@ import scipy as sp
 
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
-raise Exception(" load function and run set of scenarios")
 
 
 print("-------------------------------------")
@@ -34,6 +33,7 @@ print("-------------------------------------")
 print("s **** scenario:  food waste")
 t4 = SolveModel(scenario = "food_100d", feedstock = "food")
 
+raise Exception(" load function and run set of scenarios")
 
 
 print("s **** scenario:  food waste, 20 percent recovered")

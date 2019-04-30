@@ -65,15 +65,16 @@ counties = tbm_pts # could change to GBM
 
 # facilities
 facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
-facilities = facilities.to_crs(epsg=4326)
-facilities = facilities[0:10]
+# facilities = facilities.to_crs(epsg=4326)
+# facilities = facilities[0:10]
 
 ######################################################################
 # RANGELAND FIX!
 ######################################################################
 
 # Import rangelands
-rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/grazingland_dis/CA_grazingland.shp"))
+# rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/grazingland_dis/CA_grazingland.shp"))
+rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
 rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
 
 # Fix county names! 
@@ -99,27 +100,32 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 
 detour_factor = 1.4
 
-# c2f = {}
-# for county in counties['COUNTY']:
-#     c2f[county] = {}
-#     cloc = Fetch(counties, 'COUNTY', county, 'county_centroid')
-#     for facility in facilities['SwisNo']:
-#         floc = Fetch(facilities, 'SwisNo', facility, 'geometry')
-#         c2f[county][facility] = {}
-#         c2f[county][facility]['trans_dist'] = Distance(cloc,floc)*detour_factor
-
+c2f = {}
+for county in counties['COUNTY']:
+    c2f[county] = {}
+    # print(county)
+    cloc = Fetch(counties, 'COUNTY', county, 'county_centroid')
+    # print(cloc)
+    for facility in facilities['SwisNo']:
+        floc = Fetch(facilities, 'SwisNo', facility, 'geometry')
+        # print(facility)
+        # print(floc)
+        c2f[county][facility] = {}
+        c2f[county][facility]['trans_dist'] = Distance(cloc,floc)*detour_factor
+        # print(c2f[county][facility]['trans_dist'])
 
 f2r = {}
 for facility in facilities['SwisNo']:
     f2r[facility] = {}
+    print(facility)
     floc = Fetch(facilities, 'SwisNo', facility, 'geometry')
     for rangeland in rangelands['OBJECTID']:
+        r_string = str(rangeland)
         rloc = Fetch(rangelands, 'OBJECTID', rangeland, 'centroid')
-        f2r[facility][rangeland] = {}
-        f2r[facility][rangeland]['trans_dist'] = Distance(floc,rloc)*detour_factor
+        f2r[facility][r_string] = {}
+        f2r[facility][r_string]['trans_dist'] = Distance(floc,rloc)*detour_factor
+        print(f2r[facility][r_string]['trans_dist'])
 
-# f2r['33-AA-0370'][1]
-# f2r[k][r]
 
 avgDict = {}
 for facility in f2r.keys():
@@ -128,9 +134,10 @@ for facility in f2r.keys():
     avgDict[facility] = {}
     avgDict[facility]['SwisNo'] = facility
     for rangeland in f2r[facility].keys():
-        temp += f2r[facility][rangeland]['trans_dist']
+        r_string = str(rangeland)
+        temp += f2r[facility][r_string]['trans_dist']
         # print(temp) 
-    avgDict[facility]['avg_dist'] = temp*(1/63)
+    avgDict[facility]['avg_dist'] = temp*(1/116)
 
 avgDict = {}
 for county in c2f.keys():
@@ -149,12 +156,7 @@ import json
 with open('c2f.json', 'w') as fp:
     json.dump(c2f, fp)
 
-# json = json.dump(f2r)
-# f = open("f2r.json","w")
-# f.write(json)
-# f.close()
+with open('f2r.json', 'w') as fp:
+    json.dump(f2r, fp)
 
-import json
-# with open("f2r.json", 'w') as f:
-#     json.dump(f2r, f)
 

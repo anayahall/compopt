@@ -12,7 +12,7 @@ from geopandas import GeoSeries, GeoDataFrame
  
 
 #change wd
-os.chdir("/Users/anayahall/projects/grapevine")
+os.chdir("/Users/anayahall/projects/compopt")
 
 #######################################################################
 # Starting from INTERIM data (somewhat preprocessed in R - may come back to)
@@ -131,6 +131,9 @@ for i in range(n):
 sum(df.cap_m3) * (1/0.764555) * (1/2.24)
 
 
+raise Exception("pre-geo")
+
+
 # Use geopandas to make spatial
 # from: https://geohackweek.github.io/vector/04-geopandas-intro/
 geometry = [Point(xy) for xy in zip(df['Longitude'], df['Latitude'])]
@@ -157,7 +160,7 @@ gdf.crs = {'init' :'epsg:3310'}
 
 # gdf.head()
 print("exporting shapefile")
-out = r"/Users/anayahall/projects/grapevine/data/clean/clean_swis.shp"
+out = r"/Users/anayahall/projects/compopt/data/clean/clean_swis.shp"
 
 # type(gdf)
 

@@ -187,7 +187,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     # soil_emis = 68, # ignore now, included in seq?
     process_emis = 11, # kg CO2e/ m3 = emisisons at facility from processing compost
     waste_to_compost = 0.58, #% volume change from waste to compost
-    c2f_trans_cost = .206, #$/m3-km # transit costs (alt is 1.8)
+    c2f_trans_cost = 1.8, #$/m3-km # transit costs (alt is 1.8)
     f2r_trans_cost = .206, #$/m3-km # transit costs
     spreader_cost = 5.8, #$/m3 # cost to spread
     detour_factor = 1.4, #chosen based on literature - multiplier on haversine distance
@@ -209,8 +209,9 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             floc = Fetch(facilities, 'SwisNo', facility, 'geometry')
             c2f[county][facility] = {}
             c2f[county][facility]['quantity'] = cp.Variable()
-            c2f[county][facility]['trans_emis'] = Distance(cloc,floc)*detour_factor*kilometres_to_emissions
-            c2f[county][facility]['trans_cost'] = Distance(cloc,floc)*detour_factor*c2f_trans_cost
+            dist = Distance(cloc,floc)
+            c2f[county][facility]['trans_emis'] = dist*detour_factor*kilometres_to_emissions
+            c2f[county][facility]['trans_cost'] = dist*detour_factor*c2f_trans_cost
 
     # proportion of compost to send to rangeland 
     f2r = {}
@@ -221,8 +222,9 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             rloc = Fetch(rangelands, 'COUNTY', rangeland, 'county_centroid')
             f2r[facility][rangeland] = {}
             f2r[facility][rangeland]['quantity'] = cp.Variable()
-            f2r[facility][rangeland]['trans_emis'] = Distance(floc,rloc)*detour_factor*kilometres_to_emissions
-            f2r[facility][rangeland]['trans_cost'] = Distance(floc,rloc)*detour_factor*f2r_trans_cost
+            dist = Distance(floc,rloc)
+            f2r[facility][rangeland]['trans_emis'] = dist*detour_factor*kilometres_to_emissions
+            f2r[facility][rangeland]['trans_cost'] = dist*detour_factor*f2r_trans_cost
 
     ############################################################
 
