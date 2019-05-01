@@ -5,6 +5,8 @@ import numpy as np
 import os
 import datetime
 from os.path import join as opj
+import json
+
 
 import pandas as pd
 import shapely as shp
@@ -15,6 +17,8 @@ from biomass_preprocessing import MergeInventoryAndCounty
 #from swis_preprocessing import LoadAndCleanSWIS #TODO
 
 DATA_DIR = "/Users/anayahall/projects/compopt/data"
+RESULTS_DIR = "/Users/anayahall/projects/compopt/results"
+
 
 
 ############################################################
@@ -80,9 +84,10 @@ counties = counties[((counties['feedstock'] == "FOOD") |
 
 # Load facility info
 facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
+facilities.rename(columns={'County':'COUNTY'}, inplace=True)
 # facilities = facilities.to_crs(epsg=4326)
 
-# facilities = facilities[['SwisNo', 'AcceptedWa', 'County', 'cap_m3', 'geometry']].copy()
+# facilities = facilities[['SwisNo', 'AcceptedWa', 'COUNTY', 'cap_m3', 'geometry']].copy()
 
 
 ############################################################
@@ -111,25 +116,24 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 # SUBSET!! for testing functions
 ############################################################# 
 # # SUBSET out four counties
-# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
-counties = counties[0:15]
+counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+    (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+# counties = counties[0:15]
 
 # # SUBSET out four counties
-# facilities = facilities[(facilities['County'] == "San Diego") | (facilities['County'] == "Orange") | 
-#     (facilities['County'] == "Imperial")].copy()
+facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
+    (facilities['COUNTY'] == "Imperial")].copy()
 # too many, just select first 5
 facilities = facilities[0:10]
 
 # # # SUBSET
-# subset = ["los", "slo", "sbd"]
-# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
-rangelands = rangelands[0:15]
+subset = ["los", "slo", "sbd"]
+rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+# rangelands = rangelands[0:15]
 
 ############################################################
 # raise Exception("data loaded - pre optimization")
 ############################################################
-
 
 ############################################################
 # CROPLANDS
@@ -158,7 +162,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     capacity_multiplier = 1, # can inflate capacity 
     
     #Parameters
-    landfill_ef = 315, #kg CO2e / m3 = emissions from waste remaining in county
+    landfill_ef = 315, #kg CO2e / m3 = avoided emissions from waste going to landfill
     #compost_ef = 0,  
     kilometres_to_emissions = 0.37, # kg CO2e/ m3 - km for 35mph speed 
     kilometres_to_emissions_10 = 1, # TODO
@@ -167,11 +171,39 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     # soil_emis = 68, # ignore now, included in seq?
     process_emis = 11, # kg CO2e/ m3 = emisisons at facility from processing compost
     waste_to_compost = 0.58, #% volume change from waste to compost
-    c2f_trans_cost = 1.8, #$/m3-km # transit costs (alt is 1.8)
+    c2f_trans_cost = 0.412, #$/m3-km # transit costs (alt is 1.8)
     f2r_trans_cost = .206, #$/m3-km # transit costs
     spreader_cost = 5.8, #$/m3 # cost to spread
     detour_factor = 1.4, #chosen based on literature - multiplier on haversine distance
     ):
+
+
+    # change supply constraint by feedstock selected
+    if feedstock == 'food_and_green':
+        # Subset
+        counties = counties[((counties['feedstock'] == "FOOD") | (counties['feedstock'] == "GREEN"))]
+        # Adjust food waste disposal rates based on user input
+        mask = counties.feedstock == "FOOD"
+        column_name = 'disposal_wm3'
+        # adjust food waste by defined reduction scenario
+        counties.loc[mask, column_name] = (1-fw_reduction)*counties.loc[mask,column_name]
+        # new column of sum of food and green waste
+        counties['disposal'] = counties.groupby(['COUNTY'])['disposal_wm3'].transform('sum')
+        # collapse counties
+        counties = counties.drop_duplicates(subset = 'COUNTY')
+    elif feedstock == 'food':
+        # mask = counties.feedstock == "FOOD"
+        # column_name = 'disposal_wm3'
+        # # adjust food waste by defined reduction scenario
+        # counties.loc[mask, column_name] = fw_reduction*counties.loc[mask,column_name]
+        counties = counties[(counties['feedstock'] == "FOOD")]
+        counties['disposal'] = (1-fw_reduction)* counties['disposal_wm3']
+    elif feedstock == 'manure':
+        counties = counties[(counties['feedstock'] == "MANURE")]
+        counties['disposal'] = counties['disposal_wm3'] 
+
+    # Set disposal cap for use in constraints
+    counties['disposal_cap'] = (disposal_rate) * counties['disposal']
 
 
     # #Variables
@@ -214,12 +246,14 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     print("--building objective function")
     # emissions due to waste remaining in county
     for county in counties['COUNTY']:
+        total_waste = Fetch(counties, 'COUNTY', county, 'disposal_cap')
         temp = 0
         for facility in facilities['SwisNo']:
             x    = c2f[county][facility]
             temp += x['quantity']
     #    temp = sum([c2f[county][facility]['quantity'] for facilities in facilities['SwisNo']]) #Does the same thing
-        obj += landfill_ef*(1 - temp)
+        obj += landfill_ef*(0 - temp)
+        # obj += landfill_ef*(total_waste - temp)
 
     for county in counties['COUNTY']:
         for facility in facilities['SwisNo']:
@@ -260,32 +294,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     print("--subject to constraints")
     now = datetime.datetime.now()
     print(str(now))
-
-    # change supply constraint by feedstock selected
-    if feedstock == 'food_and_green':
-        # Subset
-        counties = counties[((counties['feedstock'] == "FOOD") | (counties['feedstock'] == "GREEN"))]
-        # Adjust food waste disposal rates based on user input
-        mask = counties.feedstock == "FOOD"
-        column_name = 'disposal_wm3'
-        # adjust food waste by defined reduction scenario
-        counties.loc[mask, column_name] = (1-fw_reduction)*counties.loc[mask,column_name]
-        # new column of sum of food and green waste
-        counties['disposal'] = counties.groupby(['COUNTY'])['disposal_wm3'].transform('sum')
-        # collapse counties
-        counties = counties.drop_duplicates(subset = 'COUNTY')
-    elif feedstock == 'food':
-        # mask = counties.feedstock == "FOOD"
-        # column_name = 'disposal_wm3'
-        # # adjust food waste by defined reduction scenario
-        # counties.loc[mask, column_name] = fw_reduction*counties.loc[mask,column_name]
-        counties = counties[(counties['feedstock'] == "FOOD")]
-        counties['disposal'] = (1-fw_reduction)* counties['disposal_wm3']
-    elif feedstock == 'manure':
-        counties = counties[(counties['feedstock'] == "MANURE")]
-        counties['disposal'] = counties['disposal_wm3'] 
-
-    counties['disposal_cap'] = (disposal_rate) * counties['disposal']
 
     #supply constraint
     for county in counties['COUNTY']:
@@ -371,104 +379,226 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     #         print("{0:15} {1:15} {2:15}".format(facility,rangeland,f2r[facility][rangeland]['quantity'].value))
     ############################################################
 
-    #Calculate cost after solving!
-    cost = 0
+    # Rangeland area covered (ha) & applied amount by rangeland
+    rangeland_app = {}
+    for rangeland in rangelands['OBJECTID']:
+        r_string = str(rangeland)
+        applied_volume = 0
+        area = 0
+        temp_transport_emis = 0
+        temp_transport_cost = 0
+        rangeland_app[r_string] = {}
+        rangeland_app[r_string]['OBJECTID'] = r_string
+        rangeland_app[r_string]['COUNTY'] = Fetch(rangelands, 'OBJECTID', rangeland, 'COUNTY')
+        for facility in facilities['SwisNo']:
+                x = f2r[facility][rangeland]
+                applied_volume += x['quantity'].value
+                temp_transport_emis += applied_volume* x['trans_emis']
+                temp_transport_cost += applied_volume *x['trans_cost']
+                area += int(round(applied_volume * (1/63.5)))
+        rangeland_app[r_string]['area_treated'] = area
+        rangeland_app[r_string]['volume'] = int(round(applied_volume))
+        rangeland_app[r_string]['application_cost'] = int(round(applied_volume))*spreader_cost
+        rangeland_app[r_string]['application_emis'] = int(round(applied_volume))*spreader_ef
+        rangeland_app[r_string]['trans_emis'] = temp_transport_emis
+        rangeland_app[r_string]['trans_cost'] = temp_transport_cost
+        rangeland_app[r_string]['sequestration'] = applied_volume*seq_f
 
-    cost_by_county = {}
+    # # Quantity moved out of county
+    county_results = {}
+    print("{0:15} {1:15} {2:15}".format("COUNTY","Facility","Amount"))
+    for county in counties['COUNTY']:
+        output = 0
+        # temp_volume = 0
+        temp_transport_emis = 0
+        temp_transport_cost = 0
+        county_results[county] = {}
+        for facility in facilities['SwisNo']:
+            x = c2f[county][facility]
+            output += x['quantity'].value
+            # temp_volume += x['quantity'].value
+            temp_transport_emis += output * x['trans_emis']
+            temp_transport_cost += output * x['trans_cost']
+            print("{0:15} {1:15} {2:15}".format(county,facility,output))
+        county_results[county]['output'] = int(round(output))
+        county_results[county]['ship_emis'] = int(round(temp_transport_emis))
+        county_results[county]['TOTAL_emis'] = temp_transport_emis
+        county_results[county]['ship_cost'] = int(round(temp_transport_cost))
+        county_results[county]['TOTAL_cost'] = temp_transport_cost
+
+    # # Facility intake 
+    fac_intake = {}
+    for facility in facilities['SwisNo']:
+        temp_volume = 0
+        fac_intake[facility] = {}
+        fac_intake[facility]['SwisNo'] = facility
+        fac_intake[facility]['COUNTY'] = Fetch(facilities, 'SwisNo', facility, 'COUNTY')
+        for county in counties['COUNTY']:
+            x = c2f[county][facility]
+            # t = c2f[county][facility]['quantity'].value
+            temp_volume += x['quantity'].value
+        fac_intake[facility]['intake'] = int(round(temp_volume))
+        fac_intake[facility]['facility_emis'] = temp_volume*process_emis
+
+    ####################################
+    print(county_results)
+    # county_results = {}
+    for k,v in rangeland_app.items():
+        county = v['COUNTY']
+        # print('county', county)
+        if county in county_results:
+
+            if 'TOTAL_emis' in county_results[county].keys():
+                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis']
+            else: 
+                county_results[v['COUNTY']]['TOTAL_emis'] = 0
+
+            # SUM VOLUME OF RANGELAND IN COUNTY
+            if 'volume_applied' in county_results[county].keys():
+                county_results[v['COUNTY']]['volume_applied'] = county_results[v['COUNTY']]['volume_applied'] + v['volume']
+            else:
+                county_results[county]['volume_applied'] = v['volume']
+            
+            # Sum of cost of applying compost in the county
+            if 'application_cost' in county_results[county].keys():
+                county_results[v['COUNTY']]['application_cost'] = county_results[v['COUNTY']]['application_cost'] + v['application_cost']
+            else:
+                county_results[county]['application_cost'] = v['application_cost']
+            
+            # sum of emissions from applying compost in county
+            if 'application_emis' in county_results[county].keys():
+                county_results[v['COUNTY']]['application_emis'] = county_results[v['COUNTY']]['application_emis'] + v['application_emis']
+                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis'] + v['application_emis']
+
+            else:
+                county_results[county]['application_emis'] = v['application_emis']
+                county_results[v['COUNTY']]['TOTAL_emis'] =  v['application_emis']
+
+            
+            # sum of transportation emissions for hauling compost to county's rangelands
+            if 'trans_emis' in county_results[county].keys():
+                county_results[v['COUNTY']]['trans_emis'] = county_results[v['COUNTY']]['trans_emis'] + v['trans_emis']
+                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis'] + v['trans_emis']
+
+            else:
+                county_results[county]['trans_emis'] = v['trans_emis']
+                county_results[v['COUNTY']]['TOTAL_emis'] = v['trans_emis']
+
+            
+            # sum of transportation costs for hauling compost to county's rangelands
+            if 'trans_cost' in county_results[county].keys():
+                county_results[v['COUNTY']]['trans_cost'] = county_results[v['COUNTY']]['trans_cost'] + v['trans_cost']
+            else:
+                county_results[county]['trans_cost'] = v['trans_cost']
+            
+            # total sequestration potential from applying compost in county
+            if 'sequestration' in county_results[county].keys():
+                county_results[v['COUNTY']]['sequestration'] = county_results[v['COUNTY']]['sequestration'] + v['sequestration']
+                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis'] + v['sequestration']
+
+            else:
+                county_results[county]['sequestration'] = v['sequestration']
+                county_results[v['COUNTY']]['TOTAL_emis'] = v['sequestration']
+
+
+        else:
+            county_results[county] = {}
+            county_results[county]['volume_applied'] = v['volume']
+            county_results[county]['trans_cost'] = v['trans_cost']
+            county_results[county]['trans_emis'] = v['trans_emis']
+            county_results[county]['application_emis'] = v['application_cost']
+            county_results[county]['application_emis'] = v['application_emis']
+            county_results[county]['sequestration'] = v['sequestration']
+            county_results[county]['TOTAL_emis'] = v['application_emis']+ v['trans_emis']
+
+    for k,v in fac_intake.items():
+        # print('k: ', k)
+        # print('v: ', v)
+        # print('V.COUNTY: ', v['COUNTY'])
+        county = v['COUNTY']
+        # print('county', county)
+        if county in county_results:
+            if 'county_fac_intake' in county_results[county].keys(): 
+                county_results[v['COUNTY']]['county_fac_intake'] = county_results[v['COUNTY']]['county_fac_intake'] + v['intake']
+                # print('got in here...')
+            else:
+                county_results[county]['county_fac_intake'] = v['intake']
+            if 'county_fac_emis' in county_results[county].keys(): 
+                county_results[v['COUNTY']]['county_fac_emis'] = county_results[v['COUNTY']]['county_fac_emis'] + v['facility_emis']
+                # print('got in here...')
+            else:
+                county_results[county]['county_fac_emis'] = v['facility_emis']
+        else:
+            county_results[county] = {}
+            county_results[county]['county_fac_intake'] = v['intake']
+            county_results[county]['county_fac_emis'] = v['facility_emis']
+        # print(county_results)
+
+#########################################
+
+    #Calculate cost after solving!
+    project_cost = 0
+
+    cost_dict = {}
     # transport costs - county to facility
     for county in counties['COUNTY']:
-        cost_by_county[county] = {}
-        temp = 0
-        # cost_by_county[county]['COUNTY'] = county
+        cost_dict[county] = {}
+        ship_cost = 0
+        # cost_dict[county]['COUNTY'] = county
         for facility in facilities['SwisNo']:
             x    = c2f[county][facility]
-            cost += x['quantity'].value*x['trans_cost']
-            temp += x['quantity'].value*x['trans_cost']
-        cost_by_county[county]['cost'] = int(round(temp))
+            project_cost += x['quantity'].value*x['trans_cost']
+            ship_cost += x['quantity'].value*x['trans_cost']
+        cost_dict[county]['cost'] = int(round(ship_cost))
+
+        #volume * cost to apply
+        # need volume times distance
+
 
     for facility in facilities['SwisNo']:
         for rangeland in rangelands['OBJECTID']:
             x = f2r[facility][rangeland]
             applied_amount = x['quantity'].value
-            # emissions due to transport of compost from facility to rangelands
-            cost += x['trans_cost']* applied_amount
-            # emissions due to application of compost by manure spreader
-            cost += spreader_cost * applied_amount
+            # project_cost due to transport of compost from facility to rangelands
+            project_cost += x['trans_cost']* applied_amount
+            # project_cost due to application of compost by manure spreader
+            project_cost += spreader_cost * applied_amount
 
-    # alternately, calculate cost after maximizing CO2 mitigation
-    print("COST ($) : ", cost)
-    result = cost/val
+    # alternately, calculate project_cost after maximizing CO2 mitigation
+    print("COST ($) : ", project_cost)
+    result = project_cost/val
     print("*********************************************")
     print("$/CO2e MITIGATED: ", -result)
     print("*********************************************")
 
 
     # # Disaggregated results I might want:
-    # def SaveModelResults(scenario):
 
-    # Quantity moved out of county
-    county_output = {}
-    # print("{0:15} {1:15} {2:15}".format("County","Facility","Amount"))
-    for county in counties['COUNTY']:
-        temp = 0
-        county_output[county] = {}
-        for facility in facilities['SwisNo']:
-            x = c2f[county][facility]['quantity'].value
-            temp += x
-            # print("{0:15} {1:15} {2:15}".format(county,facility,x))
-        county_output[county]['volume'] = int(round(temp))
+    # # turn above restults into dataframe for easier plotting later
+    # # applied = pd.DataFrame.from_dict(rangeland_app, orient='index')
+    # output_df = pd.DataFrame.from_dict(county_results, orient='index')
+    # intake_df = pd.DataFrame.from_dict(fac_intake, orient='index')
 
-    # Facility intake 
-    fac_intake = {}
-    for facility in facilities['SwisNo']:
-        temp = 0
-        fac_intake[facility] = {}
-        fac_intake[facility]['SwisNo'] = facility
-        for county in counties['COUNTY']:
-            x = c2f[county][facility]['quantity'].value
-            temp += x
-        fac_intake[facility]['intake'] = int(round(temp))
+    # os.chdir("/Users/anayahall/projects/compopt/results")
 
 
-    # Rangeland area covered (ha) & applied amount by rangeland
-    rangeland_app = {}
-    for rangeland in rangelands['OBJECTID']:
-        applied_volume = 0
-        area = 0
-        rangeland_app[rangeland] = {}
-        rangeland_app[rangeland]['COUNTY'] = rangeland
-        for facility in facilities['SwisNo']:
-                x = f2r[facility][rangeland]
-                applied_volume += x['quantity'].value
-                area += int(round(applied_volume * (1/63.5)))
-        rangeland_app[rangeland]['area_treated'] = area
-        rangeland_app[rangeland]['volume'] = int(round(applied_volume))
+    # if savedf == True:
+    #     # Save output for batch processing
+    #     output_df.to_csv(str(scenario)+"_CountyOutput.csv")
+    #     intake_df.to_csv(str(scenario)+"_FacIntake.csv")
+    #     applied.to_csv(str(scenario)+"_LandApp.csv")
 
-
-    # turn above restults into dataframe for easier plotting later
-    applied = pd.DataFrame.from_dict(rangeland_app, orient='index')
-    output_df = pd.DataFrame.from_dict(county_output, orient='index')
-    intake_df = pd.DataFrame.from_dict(fac_intake, orient='index')
-
-    os.chdir("/Users/anayahall/projects/compopt/results")
-
-    if savedf == True:
-        # Save output for batch processing
-        output_df.to_csv(str(scenario)+"_CountyOutput.csv")
-        intake_df.to_csv(str(scenario)+"_FacIntake.csv")
-        applied.to_csv(str(scenario)+"_LandApp.csv")
-
-    return {'value': val, 'cost': cost,  'result': -result}, c2f, f2r
-
+    # return {'value': val, 'cost': project_cost,  'result': -result}, c2f, f2r, cost_dict, rangeland_app
+    return rangeland_app, cost_dict, county_results, fac_intake
 
 # r = pd.merge(rangelands, rdf, on = "COUNTY")
 # fac_df = pd.merge(facilities, fac_df, on = "SwisNo")
 
 # Run test
-x, y, z = SolveModel(scenario = 'base')
+rangeland_app, cost_dict, county_results, fac_intake  = SolveModel(scenario = 'test')
 
-
-print("model loaded")
+print(county_results)
+# print("model loaded")
 ############################################################
 
 

@@ -11,29 +11,31 @@ import scipy as sp
 
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
+# raise Exception(" load function and run set of scenarios")
 
 
 print("-------------------------------------")
 
-print("s **** scenario: food waste under 25 disposal rate ")
-t1 = SolveModel(scenario = "food_25d", feedstock = "food",  
-	disposal_rate = 0.25)
+# print("s **** scenario: food waste under 25 disposal rate ")
+# t1 = SolveModel(scenario = "food_25d", feedstock = "food",  
+# 	disposal_rate = 0.25)	
 
-print("s **** scenario: food waste under 50 percent disposal rate")
-t2 = SolveModel(scenario = "food_50d", feedstock = "food", 
-	disposal_rate = 0.5)
+# print("s **** scenario: food waste under 50 percent disposal rate")
+# t2 = SolveModel(scenario = "food_50d", feedstock = "food", 
+# 	disposal_rate = 0.5)
 
-print("-------------------------------------")
+# print("-------------------------------------")
 
-print("s **** scenario: food waste under 75 percent disposal rate")
-t3 = SolveModel(scenario = "food_75d", feedstock = "food",  
-	disposal_rate = 0.75)
+# print("s **** scenario: food waste under 75 percent disposal rate")
+# t3 = SolveModel(scenario = "food_75d", feedstock = "food",  
+# 	disposal_rate = 0.75)
+
 
 print("-------------------------------------")
 print("s **** scenario:  food waste")
 t4 = SolveModel(scenario = "food_100d", feedstock = "food")
 
-raise Exception(" load function and run set of scenarios")
+# raise Exception(" load function and run set of scenarios")
 
 
 print("s **** scenario:  food waste, 20 percent recovered")
@@ -96,7 +98,7 @@ s3 = SolveModel(scenario = "low cost", feedstock = "food_and_green",
 
 print("s ******* scenario: process emis high")
 s5 = SolveModel(scenario = "P_high", feedstock = "food_and_green", 
-		process_emis = -16)
+		process_emis = 16)
 
 ## test capacity limits
 print("s ******* scenario: double capacity")

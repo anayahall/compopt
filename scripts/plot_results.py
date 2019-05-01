@@ -14,8 +14,8 @@ import json
 DATA_DIR = "/Users/anayahall/projects/compopt/results"
 
 # load transit distances
-with open("c2f_dist.json", "r") as read_file:
-    c2f_dist = json.load(read_file)
+with open("c2f.json", "r") as read_file:
+    c2f_dist2 = json.load(read_file)
 
 # this using the dissolved set of rangelands
 with open("f2r_dissolve_dist.json", "r") as read_file:
@@ -39,13 +39,23 @@ output = pd.read_csv(countyoutput,
 	header = 0)
 intake_swis = pd.read_csv(facintake)
 land = pd.read_csv(landapp, 
-	names = ['County', 'land_area', 'volume_applied'],
+	names = ['OBJECTID', 'land_area', 'volume_applied'],
 	header = 0)
+
+
+# rangeland_app = land.to_dict()
+
+
+
+raise Exception("belh")
+
+
+
 
 intake = pd.merge(intake_swis, facilities, on = 'SwisNo')
 
-data = pd.merge(output, land, on = 'County')
-data = pd.merge(data, intake, on = 'County') # note that geometry is facility location!
+# data = pd.merge(output, land, on = 'County')
+# data = pd.merge(data, intake, on = 'County') # note that geometry is facility location!
 
 # calculate cost by county
 costs = {}

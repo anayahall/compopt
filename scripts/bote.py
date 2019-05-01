@@ -1,4 +1,4 @@
-# bote.py
+# SANITY CHECK TRANSPORT DISTANCES- WHY ARE THEY SO EVEN???
 
 import numpy as np
 import os
@@ -155,10 +155,10 @@ for county in c2f.keys():
 # fp = "/Users/anayahall/projects/compopt/data"
 
 import json
-with open('c2f.json', 'w') as fp:
+with open('c2f_DIST.json', 'w') as fp:
     json.dump(c2f, fp)
 
-with open('f2r.json', 'w') as fp:
+with open('f2r_DIST.json', 'w') as fp:
     json.dump(f2r, fp)
 
 
