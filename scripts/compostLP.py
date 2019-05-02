@@ -115,20 +115,20 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 ############################################################
 # SUBSET!! for testing functions
 ############################################################# 
-# # SUBSET out four counties
-counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-    (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
-# counties = counties[0:15]
+# # # SUBSET out four counties
+# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+# # counties = counties[0:15]
 
-# # SUBSET out four counties
-facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
-    (facilities['COUNTY'] == "Imperial")].copy()
-# too many, just select first 5
-facilities = facilities[0:10]
+# # # SUBSET out four counties
+# facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
+#     (facilities['COUNTY'] == "Imperial")].copy()
+# # too many, just select first 5
+# facilities = facilities[0:10]
 
-# # # SUBSET
-subset = ["los", "slo", "sbd"]
-rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+# # # # SUBSET
+# subset = ["los", "slo", "sbd"]
+# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
 # rangelands = rangelands[0:15]
 
 ############################################################
@@ -370,7 +370,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     val = prob.solve(gp=False)
     now = datetime.datetime.now()
     print(str(now))
-    print("Optimal object value (kg CO2eq) = {0}".format(val))
+    print("Optimal object value (Mt CO2eq) = {0}".format(-val/(10^9)))
 
     ############################################################
     # print("{0:15} {1:15}".format("Rangeland","Amount"))
@@ -406,7 +406,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
     # # Quantity moved out of county
     county_results = {}
-    print("{0:15} {1:15} {2:15}".format("COUNTY","Facility","Amount"))
+    # print("{0:15} {1:15} {2:15}".format("COUNTY","Facility","Amount"))
     for county in counties['COUNTY']:
         output = 0
         # temp_volume = 0
@@ -419,7 +419,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             # temp_volume += x['quantity'].value
             temp_transport_emis += output * x['trans_emis']
             temp_transport_cost += output * x['trans_cost']
-            print("{0:15} {1:15} {2:15}".format(county,facility,output))
+            # print("{0:15} {1:15} {2:15}".format(county,facility,output))
         county_results[county]['output'] = int(round(output))
         county_results[county]['ship_emis'] = int(round(temp_transport_emis))
         county_results[county]['TOTAL_emis'] = temp_transport_emis
@@ -441,7 +441,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
         fac_intake[facility]['facility_emis'] = temp_volume*process_emis
 
     ####################################
-    print(county_results)
+    # print(county_results)
     # county_results = {}
     for k,v in rangeland_app.items():
         county = v['COUNTY']
@@ -565,10 +565,10 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             project_cost += spreader_cost * applied_amount
 
     # alternately, calculate project_cost after maximizing CO2 mitigation
-    print("COST ($) : ", project_cost)
+    print("COST (Millions $) : ", project_cost/(10^6))
     result = project_cost/val
     print("*********************************************")
-    print("$/CO2e MITIGATED: ", -result)
+    print("$/tCO2e MITIGATED: ", -result*1000)
     print("*********************************************")
 
 
@@ -578,26 +578,24 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     # # applied = pd.DataFrame.from_dict(rangeland_app, orient='index')
     # output_df = pd.DataFrame.from_dict(county_results, orient='index')
     # intake_df = pd.DataFrame.from_dict(fac_intake, orient='index')
-
+    
     # os.chdir("/Users/anayahall/projects/compopt/results")
-
-
     # if savedf == True:
     #     # Save output for batch processing
     #     output_df.to_csv(str(scenario)+"_CountyOutput.csv")
     #     intake_df.to_csv(str(scenario)+"_FacIntake.csv")
     #     applied.to_csv(str(scenario)+"_LandApp.csv")
 
-    # return {'value': val, 'cost': project_cost,  'result': -result}, c2f, f2r, cost_dict, rangeland_app
-    return rangeland_app, cost_dict, county_results, fac_intake
+    return {'value': -val/(10^9), 'cost': project_cost/(10^6),  'result': (-result/1000)}, county_results
+    # return rangeland_app, cost_dict, county_results, fac_intake
 
 # r = pd.merge(rangelands, rdf, on = "COUNTY")
 # fac_df = pd.merge(facilities, fac_df, on = "SwisNo")
 
 # Run test
-rangeland_app, cost_dict, county_results, fac_intake  = SolveModel(scenario = 'test')
 
-print(county_results)
+
+# print(county_results)
 # print("model loaded")
 ############################################################
 

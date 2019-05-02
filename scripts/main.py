@@ -11,7 +11,22 @@ import scipy as sp
 
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
-# raise Exception(" load function and run set of scenarios")
+
+state, county_results = SolveModel(scenario = 'fg_75', disposal_rate = 0.75)
+
+
+FG75_countyresults = pd.DataFrame.from_dict(county_results, orient = 'index')
+FG75_countyresults = FG75_countyresults.fillna(0)
+
+
+
+
+
+
+
+
+
+raise Exception(" load function and run one scenario")
 
 
 print("-------------------------------------")
@@ -31,19 +46,19 @@ print("-------------------------------------")
 # 	disposal_rate = 0.75)
 
 
-print("-------------------------------------")
-print("s **** scenario:  food waste")
-t4 = SolveModel(scenario = "food_100d", feedstock = "food")
+# print("-------------------------------------")
+# print("s **** scenario:  food waste")
+# t4 = SolveModel(scenario = "food_100d", feedstock = "food")
 
-# raise Exception(" load function and run set of scenarios")
+# # raise Exception(" load function and run set of scenarios")
 
 
-print("s **** scenario:  food waste, 20 percent recovered")
-t5 = SolveModel(scenario = "food_20r", feedstock = "food", 
-	fw_reduction = 0.2)
-print("-------------------------------------")
-print("-------------------------------------")
-print("-------------------------------------")
+# print("s **** scenario:  food waste, 20 percent recovered")
+# t5 = SolveModel(scenario = "food_20r", feedstock = "food", 
+# 	fw_reduction = 0.2)
+# print("-------------------------------------")
+# print("-------------------------------------")
+# print("-------------------------------------")
 
 print("s **** scenarrio: Food and green waste with 20 percent fw reduction")
 p0 = SolveModel(scenario = "fg_20r", feedstock = "food_and_green", 
@@ -52,13 +67,20 @@ p0 = SolveModel(scenario = "fg_20r", feedstock = "food_and_green",
 print("s ******* scenario: food and green waste")
 p1 = SolveModel(scenario = "fg", feedstock = "food_and_green")
 
-print("s ******* scenario: food and green waste at 50 percent disposal")
-p2 = SolveModel(scenario = "fg_50d", feedstock = "food_and_green", 
-	disposal_rate= .5)
 
 print("s ******* scenario: food and green waste at 25 percent disposal")
 p3 = SolveModel(scenario = "fg_25d", feedstock = "food_and_green", 
 	disposal_rate= .25)
+
+print("s ******* scenario: food and green waste at 50 percent disposal")
+p2 = SolveModel(scenario = "fg_50d", feedstock = "food_and_green", 
+	disposal_rate= .5)
+
+
+print("s ******* scenario: food and green waste at 75 percent disposal")
+p3 = SolveModel(scenario = "fg_75d", feedstock = "food_and_green", 
+	disposal_rate= .75)
+
 
 
 # raise Exception(" load function and run set of scenarios")
@@ -84,27 +106,30 @@ print("-------------------------------------")
 print("STARTING SENSTIVITY RUNS")
 
 
-s2 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
-		kilometres_to_emissions = 0.69)
-
-
-s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
-		seq_f = -160)
-
-print("s ******* scenario: low cost")
-s3 = SolveModel(scenario = "low cost", feedstock = "food_and_green", 
-		spreader_cost = 3)
-
-
 print("s ******* scenario: process emis high")
 s5 = SolveModel(scenario = "P_high", feedstock = "food_and_green", 
 		process_emis = 16)
 
-## test capacity limits
-print("s ******* scenario: double capacity")
-s4 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
-		capacity_multiplier = 2)
+
+# s2 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
+# 		kilometres_to_emissions = 0.69)
 
 
-s6 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
-		c2f_trans_cost = 1.2)
+# s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
+# 		seq_f = -160)
+
+# print("s ******* scenario: low cost")
+# s3 = SolveModel(scenario = "low cost", feedstock = "food_and_green", 
+# 		spreader_cost = 3)
+
+
+
+
+# ## test capacity limits
+# print("s ******* scenario: double capacity")
+# s4 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
+# 		capacity_multiplier = 2)
+
+
+# s6 = SolveModel(scenario = "t_high", feedstock = "food_and_green", 
+# 		c2f_trans_cost = 1.2)
