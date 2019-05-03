@@ -56,6 +56,32 @@ def Fetch(df, key_col, key, value):
     #counties['disposal'].loc[counties['COUNTY']=='San Diego'].values[0]
     return df[value].loc[df[key_col]==key].values[0]
 
+
+def SaveModelVars(c2f, f2r):
+
+    c2f_values = {}
+
+    for county in c2f.keys():
+        # print("COUNTY: ", county)
+        c2f_values[county] = {}
+        for facility in c2f[county].keys():
+            # print("FACILITY: ", facility)
+            c2f_values[county][facility] = {}
+            x = c2f[county][facility]['quantity'].value
+            c2f_values[county][facility] = (round(int(x)))
+
+
+    f2r_values = {}
+
+    for facility in f2r.keys():
+        f2r_values[facility] = {}
+        for rangeland in f2r[facility].keys():
+            f2r_values[facility][rangeland] = {}
+            x = f2r[facility][rangeland]['quantity'].value
+            f2r_values[facility][rangeland] = (round(int(x)))
+    return c2f_values, f2r_values
+
+
 ############################################################
 
 # bring in biomass data
@@ -115,7 +141,7 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 ############################################################
 # SUBSET!! for testing functions
 ############################################################# 
-# # # SUBSET out four counties
+# # SUBSET out four counties
 # counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
 #     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
 # # counties = counties[0:15]
@@ -124,7 +150,7 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 # facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
 #     (facilities['COUNTY'] == "Imperial")].copy()
 # # too many, just select first 5
-# facilities = facilities[0:10]
+# # facilities = facilities[0:10]
 
 # # # # SUBSET
 # subset = ["los", "slo", "sbd"]
@@ -178,32 +204,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     ):
 
 
-    # change supply constraint by feedstock selected
-    if feedstock == 'food_and_green':
-        # Subset
-        counties = counties[((counties['feedstock'] == "FOOD") | (counties['feedstock'] == "GREEN"))]
-        # Adjust food waste disposal rates based on user input
-        mask = counties.feedstock == "FOOD"
-        column_name = 'disposal_wm3'
-        # adjust food waste by defined reduction scenario
-        counties.loc[mask, column_name] = (1-fw_reduction)*counties.loc[mask,column_name]
-        # new column of sum of food and green waste
-        counties['disposal'] = counties.groupby(['COUNTY'])['disposal_wm3'].transform('sum')
-        # collapse counties
-        counties = counties.drop_duplicates(subset = 'COUNTY')
-    elif feedstock == 'food':
-        # mask = counties.feedstock == "FOOD"
-        # column_name = 'disposal_wm3'
-        # # adjust food waste by defined reduction scenario
-        # counties.loc[mask, column_name] = fw_reduction*counties.loc[mask,column_name]
-        counties = counties[(counties['feedstock'] == "FOOD")]
-        counties['disposal'] = (1-fw_reduction)* counties['disposal_wm3']
-    elif feedstock == 'manure':
-        counties = counties[(counties['feedstock'] == "MANURE")]
-        counties['disposal'] = counties['disposal_wm3'] 
-
-    # Set disposal cap for use in constraints
-    counties['disposal_cap'] = (disposal_rate) * counties['disposal']
 
 
     # #Variables
@@ -246,13 +246,13 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     print("--building objective function")
     # emissions due to waste remaining in county
     for county in counties['COUNTY']:
-        total_waste = Fetch(counties, 'COUNTY', county, 'disposal_cap')
+        # total_waste = Fetch(counties, 'COUNTY', county, 'disposal_cap')
         temp = 0
         for facility in facilities['SwisNo']:
             x    = c2f[county][facility]
             temp += x['quantity']
     #    temp = sum([c2f[county][facility]['quantity'] for facilities in facilities['SwisNo']]) #Does the same thing
-        obj += landfill_ef*(0 - temp)
+        obj += landfill_ef*(1 - temp)
         # obj += landfill_ef*(total_waste - temp)
 
     for county in counties['COUNTY']:
@@ -288,6 +288,33 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             obj += seq_f * applied_amount                             
 
     ############################################################
+
+    # change supply constraint by feedstock selected
+    if feedstock == 'food_and_green':
+        # Subset
+        counties = counties[((counties['feedstock'] == "FOOD") | (counties['feedstock'] == "GREEN"))]
+        # Adjust food waste disposal rates based on user input
+        mask = counties.feedstock == "FOOD"
+        column_name = 'disposal_wm3'
+        # adjust food waste by defined reduction scenario
+        counties.loc[mask, column_name] = (1-fw_reduction)*counties.loc[mask,column_name]
+        # new column of sum of food and green waste
+        counties['disposal'] = counties.groupby(['COUNTY'])['disposal_wm3'].transform('sum')
+        # collapse counties
+        counties = counties.drop_duplicates(subset = 'COUNTY')
+    elif feedstock == 'food':
+        # mask = counties.feedstock == "FOOD"
+        # column_name = 'disposal_wm3'
+        # # adjust food waste by defined reduction scenario
+        # counties.loc[mask, column_name] = fw_reduction*counties.loc[mask,column_name]
+        counties = counties[(counties['feedstock'] == "FOOD")]
+        counties['disposal'] = (1-fw_reduction)* counties['disposal_wm3']
+    elif feedstock == 'manure':
+        counties = counties[(counties['feedstock'] == "MANURE")]
+        counties['disposal'] = counties['disposal_wm3'] 
+
+    # Set disposal cap for use in constraints
+    counties['disposal_cap'] = (disposal_rate) * counties['disposal']
 
     #Constraints
     cons = []
@@ -342,35 +369,16 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     		temp_out += x['quantity']	# sum of output from facilty to rangeland
     	cons += [temp_out == waste_to_compost*temp_in]
 
-
-    # #ALTERNATE OBJECTIVE FUNCTION IS TO MINIMIZE COST 
-    # obj_cost = 0
-
-    # # transport costs - county to facility
-    # for county in counties['COUNTY']:
-    #     for facility in facilities['SwisNo']:
-    #         x    = c2f[county][facility]
-    #         obj_cost += x['quantity']*x['trans_cost']
-
-
-    # for facility in facilities['SwisNo']:
-    #     for rangeland in rangelands['OBJECTID']:
-    #         x = f2r[facility][rangeland]
-    #         applied_amount = x['quantity']
-    #         # emissions due to transport of compost from facility to rangelands
-    #         obj_cost += x['trans_cost']* applied_amount
-    #         # emissions due to application of compost by manure spreader
-    #         obj_cost += spreader_cost * applied_amount
-
     ############################################################
 
     print("solving...")
     print("*********************************************")
     prob = cp.Problem(cp.Minimize(obj), cons)
     val = prob.solve(gp=False)
+    CO2mit = -val/(10**9)
     now = datetime.datetime.now()
     print(str(now))
-    print("Optimal object value (Mt CO2eq) = {0}".format(-val/(10^9)))
+    print("Optimal object value (Mt CO2eq) = {0}".format(CO2mit))
 
     ############################################################
     # print("{0:15} {1:15}".format("Rangeland","Amount"))
@@ -494,7 +502,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             # total sequestration potential from applying compost in county
             if 'sequestration' in county_results[county].keys():
                 county_results[v['COUNTY']]['sequestration'] = county_results[v['COUNTY']]['sequestration'] + v['sequestration']
-                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis'] + v['sequestration']
+                county_results[v['COUNTY']]['TOTAL_emis'] = county_results[v['COUNTY']]['TOTAL_emis'] - v['sequestration']
 
             else:
                 county_results[county]['sequestration'] = v['sequestration']
@@ -564,39 +572,26 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             # project_cost due to application of compost by manure spreader
             project_cost += spreader_cost * applied_amount
 
-    # alternately, calculate project_cost after maximizing CO2 mitigation
-    print("COST (Millions $) : ", project_cost/(10^6))
+
+    cost_millions = (project_cost/(10**6))    
+    print("COST (Millions $) : ", cost_millions)
     result = project_cost/val
+    abatement_cost = (-result*1000)
     print("*********************************************")
-    print("$/tCO2e MITIGATED: ", -result*1000)
+    print("$/tCO2e MITIGATED: ", abatement_cost)
     print("*********************************************")
 
 
-    # # Disaggregated results I might want:
+    c2f_values, f2r_values = SaveModelVars(c2f, f2r)
 
-    # # turn above restults into dataframe for easier plotting later
-    # # applied = pd.DataFrame.from_dict(rangeland_app, orient='index')
-    # output_df = pd.DataFrame.from_dict(county_results, orient='index')
-    # intake_df = pd.DataFrame.from_dict(fac_intake, orient='index')
-    
-    # os.chdir("/Users/anayahall/projects/compopt/results")
-    # if savedf == True:
-    #     # Save output for batch processing
-    #     output_df.to_csv(str(scenario)+"_CountyOutput.csv")
-    #     intake_df.to_csv(str(scenario)+"_FacIntake.csv")
-    #     applied.to_csv(str(scenario)+"_LandApp.csv")
 
-    return {'value': -val/(10^9), 'cost': project_cost/(10^6),  'result': (-result/1000)}, county_results
+    return {'value': val, 'cost': project_cost,  'result': -result}, county_results, c2f_values, f2r_values
     # return rangeland_app, cost_dict, county_results, fac_intake
 
 # r = pd.merge(rangelands, rdf, on = "COUNTY")
 # fac_df = pd.merge(facilities, fac_df, on = "SwisNo")
 
-# Run test
 
-
-# print(county_results)
-# print("model loaded")
 ############################################################
 
 

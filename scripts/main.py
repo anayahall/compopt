@@ -11,18 +11,13 @@ import scipy as sp
 
 from compostLP import Haversine, Distance, Fetch, SolveModel
 
+state, county_results = SolveModel(scenario = "FG_test")
 
-state, county_results = SolveModel(scenario = 'fg_75', disposal_rate = 0.75)
-
-
-FG75_countyresults = pd.DataFrame.from_dict(county_results, orient = 'index')
-FG75_countyresults = FG75_countyresults.fillna(0)
+# state, county_results = SolveModel(scenario = 'fg_75', disposal_rate = 0.75)
 
 
-
-
-
-
+FG_countyresults = pd.DataFrame.from_dict(county_results, orient = 'index')
+FG_countyresults = FG_countyresults.fillna(0)
 
 
 

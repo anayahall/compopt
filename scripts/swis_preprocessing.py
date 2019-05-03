@@ -155,7 +155,7 @@ df.head()
 
 # In[16]:
 
-gdf.crs = {'init' :'epsg:3310'}
+gdf.crs = {'init' :'epsg:4326'}
 
 
 # gdf.head()
