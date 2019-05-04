@@ -14,26 +14,13 @@ import shapely as sp
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from geopandas import GeoSeries, GeoDataFrame
-# only for jupyter nb to show plots inline
-get_ipython().magic('matplotlib inline')
 
-#set wd
-os.chdir("/Users/anayahall/projects/grapevine")
+DATA_DIR = "/Users/anayahall/projects/grapevine/data"
 
-from scripts.fxns import epsg_meters
-
-def epsg_meters(gdf, proj=3310):
-    g = gdf.copy()
-    g = g.to_crs(epsg=proj)
-    return g
-
-
-# In[188]:
-
-### LOAD ALL DATA
+#################################################################
 
 # Load SWIS DATA
-swis_proj =  gpd.read_file("data/clean/clean_swis.shp")
+swis_proj =  gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 
 # LOAD COUNTY SHAPEFILE 
 CA_proj = gpd.read_file("data/raw/CA_Counties/CA_Counties_TIGER2016.shp")
@@ -41,51 +28,39 @@ CA_proj = gpd.read_file("data/raw/CA_Counties/CA_Counties_TIGER2016.shp")
 CA_proj.head()
 
 # LOAD BIOMASS DATA
-# waste_proj = gpd.read_file("data/clean/techbiomass_pts.shp")
-waste_proj = gpd.read_file("data/clean/grossbiomass_pts.shp")
+gbm_pts, tbm_pts = MergeInventoryAndCounty(
+    gross_inventory     = opj(DATA_DIR, "raw/biomass.inventory.csv"),
+    technical_inventory = opj(DATA_DIR, "raw/biomass.inventory.technical.csv"),
+    county_shapefile    = opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"),
+    fips_data           = opj(DATA_DIR, "interim/CA_FIPS.csv")
+)
+counties = tbm_pts # could change to GBM
 
-#CONVERT TO METERS!!
-swis = epsg_meters(swis_proj)
 
-swis.crs
+rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
+# rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/grazingland_dis/CA_grazingland.shp"))
+rangelands = rangelands.to_crs(epsg=4326)
+
+
+######################################################################
+
+# first plot
+f, ax = plt.subplots()
+CA.plot(ax = ax, color = "white", figsize = (10,10), linewidth=0.1, edgecolor = "grey")
+rangelands.plot(ax= ax, color = "green", alpha = .5)
+ax.axis('off')
+ax.set_title('Grazing Land', fontdict={'fontsize': '12', 'fontweight' : '3'})
+plt.savefig(opj(OUT_DIR, "rangelands.png"), dpi=300)
+
+
+
+
 
 # load census tract shapefile ? might use for elsewhere?
 # CA = gpd.read_file("data/raw/tl_2018_06_tract/tl_2018_06_tract.shp")
 
-
-# In[222]:
-
-waste = pd.read_csv("data/raw/biomass.inventory.technical.csv")
-waste.columns = ['County', 'Feedstock', 'BDTons', 'year', 'Category']
-# waste.head()
-
-ofmsw = waste[waste['Category'] == "organic fraction municipal solid waste"]
-# ofmsw = msw[(msw['Feedstock'] == "FOOD") | (msw['Feedstock'] == "GREEN")]
-
-fw_mc = 0.7
-gw_mc = 0.5
-
-fw = ofmsw[ofmsw['Feedstock'] == "FOOD"]
-gw = ofmsw[ofmsw['Feedstock'] == "GREEN"]
-
-fw['WetTons'] = fw['BDTons'] * (1 + fw_mc)
-gw['WetTons'] = gw['BDTons'] * (1 + gw_mc)
-
-ow = fw.append(gw)
-ow
-
-all_waste = waste.groupby(['County'])['BDTons'].sum()
-all_waste.head()
-
-
-# In[176]:
-
-# df.loc[df['product']=='a', ['market_penetration_rate', 'success_rate']] * 100
-# ofmsw.loc[ofmsw[['Feedstock']] == "FOOD", [['BDTons']]] *= (1 + fw_mc)
-# of2.head()
-
-
-# In[177]:
+##################################################################################
+# OLD & MISC
 
 ow_sum = ow.groupby(['County'], as_index = False)['WetTons'].sum()
 ow_sum.head(10)
@@ -94,56 +69,17 @@ ow_sum.head(10)
 # foodwaste = waste[(waste['biomass.feedstock'] == "FOOD") & (waste['year'] == 2014)]
 
 
-# In[178]:
-
-CA = epsg_meters(CA_proj)
-# CA.crs
 
 
-# In[190]:
+# # In[183]:
 
-swis = epsg_meters(swis_proj)
-swis.crs
-
-
-# In[180]:
-
-# add buffers - should be in meters now.....
-swis['buffers'] = swis.buffer(15000)
-# one degree is about 85km 
-
-# gdf.set_geometry('buffers').plot()
-
-
-# In[181]:
-
+# # better plot, with title
 # f, ax = plt.subplots(1)
-# CA.plot(ax = ax, cmap='Set3', linewidth=0.1)
-# swis.set_geometry('buffers').plot(ax = ax, color="blue", alpha="0.1")
-# swis.set_geometry('geometry').plot(ax = ax, color="black", marker = '*', markersize= 1)
+# CA.plot(ax = ax, cmap='Set3', figsize = (10,6), linewidth=0.1)
+# swis.plot(ax = ax, markersize = swis.cap_m3/10000, marker = 'o', color = 'black', alpha=.7, linewidth=0)
 # ax.axis('off')
 # ax.set_title('Composting Permits in CA', fontdict={'fontsize': '12', 'fontweight' : '3'})
-# plt.savefig("maps/CAwbuffers.png", dpi=300)
-
-
-# In[182]:
-
-# attempt to nest plotting
-# swis.plot(ax=CA.plot(cmap='Set3', figsize=(10, 6)), marker='o', markersize=15)
-# ax.axis('off')
-# ax.set_title('Composting Permits in CA', fontdict={'fontsize': '12', 'fontweight' : '3'})
-# plt.savefig("maps/map_export.png", dpi=300)
-
-
-# In[183]:
-
-# better plot, with title
-f, ax = plt.subplots(1)
-CA.plot(ax = ax, cmap='Set3', figsize = (10,6), linewidth=0.1)
-swis.plot(ax = ax, markersize = swis.cap_m3/10000, marker = 'o', color = 'black', alpha=.7, linewidth=0)
-ax.axis('off')
-ax.set_title('Composting Permits in CA', fontdict={'fontsize': '12', 'fontweight' : '3'})
-plt.savefig("maps/FacilitiesbyCapacity.png", dpi=300)
+# plt.savefig("maps/FacilitiesbyCapacity.png", dpi=300)
 
 
 # In[191]:
@@ -297,25 +233,4 @@ ax.axis('off')
 ax.set_title('Excess Waste (Untreatable) by County', fontdict={'fontsize': '12', 'fontweight' : '3'})
 
 
-# In[209]:
-
-gl_wp = gpd.read_file("data/raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp")
-gl = epsg_meters(gl_wp)
-gl.crs
-
-gl.shape()
-
-
-# In[207]:
-
-# owmap.head()
-
-f, ax = plt.subplots()
-CA.plot(ax = ax, color = "white", figsize = (10,10), linewidth=0.1, edgecolor = "black")
-owmap.plot(ax = ax, column = np.sqrt(owmap.WetTons), cmap = "Blues", legend = False)
-gl.plot(ax= ax, color = "green", alpha = .5)
-ax.axis('off')
-ax.set_title('Grazing Land', fontdict={'fontsize': '12', 'fontweight' : '3'})
-
-plt.savefig("maps/grazingland.png", dpi=300)
 

@@ -203,12 +203,8 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
     detour_factor = 1.4, #chosen based on literature - multiplier on haversine distance
     ):
 
-
-
-
     # #Variables
     print("--setting constant parameters")
-
 
     # decision variables
     print("--defining decision vars")
@@ -266,14 +262,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             x    = c2f[county][facility]
             # emissions due to processing compost at facility
             obj += x['quantity']*process_emis
-
-    # emissions due to waste remaining in facility
-    # for facility in facilities['SwisNo']:
-    #     temp = 0
-    #     for rangeland in rangelands['OBJECTID']:
-    #         x = f2r[facility][rangeland]
-    #         temp += x['quantity']
-    #     obj += compost_ef*(1 - temp)    
 
 
     for facility in facilities['SwisNo']:
@@ -371,7 +359,7 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
 
     ############################################################
 
-    print("solving...")
+    print("-solving...")
     print("*********************************************")
     prob = cp.Problem(cp.Minimize(obj), cons)
     val = prob.solve(gp=False)
@@ -558,10 +546,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
             project_cost += x['quantity'].value*x['trans_cost']
             ship_cost += x['quantity'].value*x['trans_cost']
         cost_dict[county]['cost'] = int(round(ship_cost))
-
-        #volume * cost to apply
-        # need volume times distance
-
 
     for facility in facilities['SwisNo']:
         for rangeland in rangelands['OBJECTID']:

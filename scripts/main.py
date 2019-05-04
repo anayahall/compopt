@@ -9,16 +9,11 @@ import shapely as shp
 import geopandas as gpd
 import scipy as sp
 
-from compostLP import Haversine, Distance, Fetch, SolveModel
+from compostLP import Haversine, Distance, Fetch, SolveModel, SaveModelVars
 
 state, county_results = SolveModel(scenario = "FG_test")
 
 # state, county_results = SolveModel(scenario = 'fg_75', disposal_rate = 0.75)
-
-
-FG_countyresults = pd.DataFrame.from_dict(county_results, orient = 'index')
-FG_countyresults = FG_countyresults.fillna(0)
-
 
 
 raise Exception(" load function and run one scenario")
