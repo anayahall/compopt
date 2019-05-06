@@ -14,7 +14,7 @@ DATA_DIR = "/Users/anayahall/projects/compopt/data"
 OUT_DIR = "/Users/anayahall/projects/compopt/maps"
 
 
-
+# temp df for testing PlotCountyResults function below
 x = gpd.read_file("/Users/anayahall/projects/compopt/test_fgbaseresults.shp")
 
 
@@ -66,7 +66,12 @@ def PlotCountyResults(gdf, plotvar, cmap = 'viridis', log = False):
     print("done")
     return 
 
+## OTHER RESULTS
+# try to plot network, first try with raw data, then try to merge c2f and f2r vals and plot those
 
+def PrepMovedVals(c2fvals, f2rvals):
+    # will need to clean - turn into df? then add lat lon from original data
+    return ("incomplete function")
 
 # facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 # facilities.rename(columns={'County':'COUNTY'}, inplace=True)

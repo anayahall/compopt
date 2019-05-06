@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 from geopandas import GeoSeries, GeoDataFrame
 
-DATA_DIR = "/Users/anayahall/projects/grapevine/data"
+DATA_DIR = "/Users/anayahall/projects/compopt/data"
+OUT_DIR = "/Users/anayahall/projects/compopt/maps"
 
 #################################################################
 
@@ -23,9 +24,9 @@ DATA_DIR = "/Users/anayahall/projects/grapevine/data"
 swis_proj =  gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 
 # LOAD COUNTY SHAPEFILE 
-CA_proj = gpd.read_file("data/raw/CA_Counties/CA_Counties_TIGER2016.shp")
-# print("Ca_proj crs: ", CA_proj.crs)
-CA_proj.head()
+CA = gpd.read_file(opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"))
+CA = CA.to_crs(epsg=4326)
+CA.head()
 
 # LOAD BIOMASS DATA
 gbm_pts, tbm_pts = MergeInventoryAndCounty(
@@ -42,6 +43,11 @@ rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_
 rangelands = rangelands.to_crs(epsg=4326)
 
 
+ej = gpd.read_file(opj(DATA_DIR, "calenviroscreen/CESJune2018Update_SHP/CES3June2018Update.shp"))
+
+
+
+
 ######################################################################
 
 # first plot
@@ -51,8 +57,6 @@ rangelands.plot(ax= ax, color = "green", alpha = .5)
 ax.axis('off')
 ax.set_title('Grazing Land', fontdict={'fontsize': '12', 'fontweight' : '3'})
 plt.savefig(opj(OUT_DIR, "rangelands.png"), dpi=300)
-
-
 
 
 

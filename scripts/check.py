@@ -18,18 +18,13 @@ DATA_DIR = "/Users/anayahall/projects/grapevine/data"
 ##################################################################
 # tbm = pd.read_csv("data/raw/biomass.inventory.technical.csv")
 
-ej = gpd.read_file(opj(DATA_DIR, 
-    "/calenviroscreen/CESJune2018Update_SHP/CES3June2018Update.shp"))
 
 # GOALS FOR FRIDAY AFTERNOON
 
-# function that takes county_results, makes into df, calcs abatement cost and makes spatial geodataframe
 
 
-
-# function that takes ^^ and plots choropleth maps of a set of variables 
+# function that takes gdf and plots choropleth maps of a set of variables 
 # (facility emissions to plot with EJ ; abatement cost ; quantity out, area applied, etc)
 
 
 
-# x = county_results['Los Angeles']['TOTAL_cost']/(county_results['Los Angeles']['TOTAL_emis']-315*county_results['Los Angeles']['output'])
