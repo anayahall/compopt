@@ -65,10 +65,17 @@ for i in range(n):
     if df.SwisNo[i]=="43-AA-0015": 
          df.at[i, 'CapacityUnits']="Cu Yards/year"
     if df.SwisNo[i]=="11-AA-0039": 
+         df.at[i, 'CapacityUnits']="Cu Yards/year" 
+    if df.SwisNo[i]=="28-AA-0002": 
+         df.at[i, 'CapacityUnits']="Cu Yards/year" 
+    if df.SwisNo[i]=="19-AR-1226": 
+         df.at[i, 'CapacityUnits']="Cu Yards/month" 
+    if df.SwisNo[i]=="54-AA-0059": 
+         df.at[i, 'CapacityUnits']="Cu Yards/year"
+    if df.SwisNo[i]=="23-AA-0052": 
          df.at[i, 'CapacityUnits']="Cu Yards/year"            
             
         
-
 df[df.CapacityUnits=="Cubic Yards"]
 
 
