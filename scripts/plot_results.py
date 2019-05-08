@@ -22,7 +22,7 @@ def MakeCountyGDF(dict):
     county_results = dict
     
     print("cleaning dict")
-    print("TESTTTTTS")
+    # print("TESTTTTTS")
     for county in county_results.keys():
         c = county_results[county]
         c['netGHG'] = c['TOTAL_emis']-315*c['output']

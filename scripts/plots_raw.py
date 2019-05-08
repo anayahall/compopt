@@ -15,10 +15,15 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 from geopandas import GeoSeries, GeoDataFrame
 
+from biomass_preprocessing import MergeInventoryAndCounty
+
+
 DATA_DIR = "/Users/anayahall/projects/compopt/data"
 OUT_DIR = "/Users/anayahall/projects/compopt/maps"
 
 #################################################################
+# LOAD ALL DATA
+
 
 # Load SWIS DATA
 swis_proj =  gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
@@ -46,7 +51,8 @@ rangelands = rangelands.to_crs(epsg=4326)
 ej = gpd.read_file(opj(DATA_DIR, "calenviroscreen/CESJune2018Update_SHP/CES3June2018Update.shp"))
 
 
-
+# load census tract shapefile ? might use for elsewhere?
+# CA = gpd.read_file("data/raw/tl_2018_06_tract/tl_2018_06_tract.shp")
 
 ######################################################################
 
@@ -59,12 +65,19 @@ ax.set_title('Grazing Land', fontdict={'fontsize': '12', 'fontweight' : '3'})
 plt.savefig(opj(OUT_DIR, "rangelands.png"), dpi=300)
 
 
-
-# load census tract shapefile ? might use for elsewhere?
-# CA = gpd.read_file("data/raw/tl_2018_06_tract/tl_2018_06_tract.shp")
-
 ##################################################################################
 # OLD & MISC
+
+# Attempts to use BASEMAP
+# m = Basemap(projection='lcc', resolution='c', 
+#             lat_0=37.5, lon_0=-119,
+#             width=1E6, height=1.2E6)
+# m.drawcoastlines(color='gray')
+# m.drawcountries(color='gray')
+# m.drawstates(color='gray')
+# plt.show()
+
+
 
 ow_sum = ow.groupby(['County'], as_index = False)['WetTons'].sum()
 ow_sum.head(10)
@@ -89,47 +102,35 @@ ow_sum.head(10)
 # In[191]:
 
 # make gdf for plotting capacity by county 
-CA["County"] = CA["NAME"]
-swis_joined = pd.merge(swis, CA, on = "County")
+# CA["County"] = CA["NAME"]
+# swis_joined = pd.merge(swis, CA, on = "County")
 
-# turn capacity from cubic meters into tons --> m3 * (1yd3/0.765m3) * (0.386ton/m3)
-swis_joined['cap_tons'] = swis_joined['cap_m3'] * (1/0.765) * (0.386)
-swis_joined.head()
+# # turn capacity from cubic meters into tons --> m3 * (1yd3/0.765m3) * (0.386ton/m3)
+# swis_joined['cap_tons'] = swis_joined['cap_m3'] * (1/0.765) * (0.386)
+# swis_joined.head()
 
-# #sum capacity by county
-swis_grouped = pd.DataFrame(swis_joined.groupby(['County'], as_index = False)['cap_tons'].sum())
-# remerge with CA shapefile data
-capmap = pd.merge(CA, swis_grouped, on = "County")
-capmap.head()
-
-
-# In[185]:
-
-# foodwaste["County"] = foodwaste["COUNTY"]
-# ow.rename(columns={'COUNTY':'County'}, 
-#                  inplace=True)
-# ow_sum.head()
-owmap = pd.merge(CA, ow_sum, on = "County")
-owmap.head()
+# # #sum capacity by county
+# swis_grouped = pd.DataFrame(swis_joined.groupby(['County'], as_index = False)['cap_tons'].sum())
+# # remerge with CA shapefile data
+# capmap = pd.merge(CA, swis_grouped, on = "County")
+# capmap.head()
 
 
-# In[186]:
+# # In[185]:
 
-# ow.sort_values(by=['disposal.yields'])
+# # foodwaste["County"] = foodwaste["COUNTY"]
+# # ow.rename(columns={'COUNTY':'County'}, 
+# #                  inplace=True)
+# # ow_sum.head()
+# owmap = pd.merge(CA, ow_sum, on = "County")
+# owmap.head()
 
-
-# In[187]:
-
-# swis.crs
-# capmap.crs
-# CA.crs
-# swis[swis['County'] == "San Bernardino"]
 
 
 # In[192]:
 
 #### PLOT CAPACITY BY COUNTY #####
-plotvar = capmap['cap_tons']
+plotvar = capmap['cap_m3']
 
 # before plotting prep legend
 c = []
@@ -139,7 +140,7 @@ for i in [10, 25, 50, 75]:
 # Map Capacity by County
 f, ax = plt.subplots(1)
 CA.plot(ax = ax, color = "white", figsize = (10,10), linewidth=0.1, edgecolor = "black")
-capmap.plot(ax = ax, column = plotvar, cmap = "Oranges", legend = True)
+# capmap.plot(ax = ax, column = plotvar, cmap = "Oranges", legend = True)
 swis.set_geometry('geometry').plot(ax = ax, markersize = swis_joined.cap_tons/10000, marker = 'o', 
                                   legend = True, color = 'black', alpha=.7, linewidth=0)
 ax.axis('off')
@@ -151,14 +152,14 @@ l3 = plt.scatter([],[], s=c[2]/1000, edgecolors='none', color = "black")
 l4 = plt.scatter([],[], s=c[3]/1000, edgecolors='none', color = "black")
 
 labels = [str(c[0]), str(c[1]), str(c[2]), str(c[3])]
-labels = [str(c[0]), str(c[1]), "35000", "75000"]
+# labels = [str(c[0]), str(c[1]), "35000", "75000"]
 
 leg = plt.legend([l1, l2, l3, l4], labels, ncol = 1, frameon=False, fontsize=10,
 handlelength=2, loc = 1, borderpad = 1,
 handletextpad=1, title='Facility Size', scatterpoints = 1)
 
 
-plt.savefig("maps/CapacitybyCounty.png", dpi=300)
+plt.savefig(opj(OUT_DIR, "CapacitybyCounty.png", dpi=300))
 
 
 # In[196]:

@@ -496,7 +496,6 @@ def SolveModel(scenario, feedstock = 'food_and_green', savedf = True,
                 county_results[county]['sequestration'] = v['sequestration']
                 county_results[v['COUNTY']]['TOTAL_emis'] = v['sequestration']
 
-
         else:
             county_results[county] = {}
             county_results[county]['volume_applied'] = v['volume']
