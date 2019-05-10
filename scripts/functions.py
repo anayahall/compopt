@@ -40,7 +40,7 @@ f, ax = plt.subplots()
 CA.plot(ax = ax, color = "white", figsize = (10,10), linewidth=0.3, edgecolor = "grey")
 # CA.set_geometry('centroid').plot(ax= ax, color = 'black')
 swis.plot(ax = ax, marker = '*', color = 'black', alpha=.7, markersize = 10, linewidth=0)
-merge.plot(ax= ax, column = merge['sum']**2, cmap = 'Greens', linewidth=0.03, 
+merge.plot(ax= ax, column = merge['sum']**3, cmap = 'Greens', linewidth=0.03, alpha = 0.7,
 	edgecolor = "green", legend = False)
 ax.axis('off')
 ax.set_title('Rangeland Application', fontdict={'fontsize': '12', 'fontweight' : '3'})

@@ -26,7 +26,7 @@ OUT_DIR = "/Users/anayahall/projects/compopt/maps"
 
 
 # Load SWIS DATA
-swis_proj =  gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
+swis =  gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 
 # LOAD COUNTY SHAPEFILE 
 CA = gpd.read_file(opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"))

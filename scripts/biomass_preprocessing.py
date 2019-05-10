@@ -86,7 +86,7 @@ def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefi
 
 
     # both set geometry (see above) and plot to check it looks right
-    CA.set_geometry('county_centroid').plot()
+    CA.set_geometry('county_centroid')
 
 
     # CREATE FIPS ID to merge with county names
