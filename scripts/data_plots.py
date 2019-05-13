@@ -12,7 +12,7 @@ import geopandas as gpd
 from geopandas import GeoSeries, GeoDataFrame
 # from mpl_toolkits.basemap import Basemap
 #CALIFORNIA BOUNDING BOX westlimit=-124.48; southlimit=32.53; eastlimit=-114.13; northlimit=42.01
-get_ipython().magic('matplotlib inline')
+# get_ipython().magic('matplotlib inline')
 
 from biomass_preprocessing import MergeInventoryAndCounty
 
@@ -168,7 +168,7 @@ CA.plot(ax = ax, color = "white", figsize = (10,10), linewidth=0.2, edgecolor = 
 manure.plot(ax = ax, column = 'disposal_BDT', cmap = "Blues", legend = True)
 ax.axis('off')
 ax.set_title('Manure (Annual BDT)', fontdict={'fontsize': '12', 'fontweight' : '3'})
-# plt.savefig(opj(OUT_DIR, "Manure.png"), dpi=300)
+plt.savefig(opj(OUT_DIR, "Manure.png"), dpi=300)
 
 
 
