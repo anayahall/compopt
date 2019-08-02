@@ -16,7 +16,18 @@ from compostLP import Haversine, Distance, Fetch, SolveModel, SaveModelVars
 # state, county_results = SolveModel(scenario = 'fg_75', disposal_rate = 0.75)
 
 
-# raise Exception(" load function and run one scenario")
+# print("HALF DISPOSAL*********************************")
+# s2 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
+# 	disposal_rate = 0.5, seq_f = -357)
+
+print("DOUBLE CAPACITY****************************")
+s3 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
+		capacity_multiplier = 2, seq_f = -357)
+
+raise Exception(" load function and run one scenario")
+
+s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
+		seq_f = -357)
 
 
 print("-------------------------------------")
