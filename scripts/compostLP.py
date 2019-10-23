@@ -1,4 +1,4 @@
-## testOP.py
+## compostoptimization.py
 
 import cvxpy as cp
 import numpy as np
@@ -79,6 +79,7 @@ def SaveModelVars(c2f, f2r):
             f2r_values[facility][rangeland] = {}
             x = f2r[facility][rangeland]['quantity'].value
             f2r_values[facility][rangeland] = (round(int(x)))
+
     return c2f_values, f2r_values
 
 
@@ -96,6 +97,15 @@ gbm_pts, tbm_pts = MergeInventoryAndCounty(
 # counties = gpd.read_file(opj(DATA_DIR, "clean/techbiomass_pts.shp"))
 # counties = counties.to_crs(epsg=4326)
 counties = tbm_pts # could change to GBM
+
+############################################################
+# NEW COUNTY SHAPE
+
+
+# counties = pd.read_csv("../data/counties/CenPop2010_Mean_CO06.txt") # NEW - population weighted means!
+# # rename lat and lon for easier plotting
+# counties.rename(columns = {'LATITUDE': 'lat', 'LONGITUDE': 'lon', 'COUNAME': 'NAME'}, inplace=True)
+
 
 # filter by YEAR up here, then refine by  feedstock inside the function
 counties = counties[((counties['feedstock'] == "FOOD") | 
@@ -142,20 +152,20 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 # SUBSET!! for testing functions
 ############################################################# 
 # # SUBSET out four counties
-# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
-# # counties = counties[0:15]
+counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+    (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+# counties = counties[0:15]
 
-# # # SUBSET out four counties
-# facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
-#     (facilities['COUNTY'] == "Imperial")].copy()
-# # too many, just select first 5
-# # facilities = facilities[0:10]
+# # SUBSET out four counties
+facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
+    (facilities['COUNTY'] == "Imperial")].copy()
+# too many, just select first 5
+# facilities = facilities[0:10]
 
-# # # # SUBSET
-# subset = ["los", "slo", "sbd"]
-# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
-# rangelands = rangelands[0:15]
+# # # SUBSET
+subset = ["los", "slo", "sbd"]
+rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+rangelands = rangelands[0:15]
 
 ############################################################
 # raise Exception("data loaded - pre optimization")
@@ -173,14 +183,17 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 # not_crops = ["Managed Wetland", "Urban", "Idle", "Mixed Pasture"]
 # crops = cropmap[cropmap['Crop2014'].isin(not_crops)== False]
 
+# leave IDLE , delete managed wetland, urban, and riparian
+## SAVE AS SHAPE!
 
 ############################################################
 # OPTIMIZATION MODEL       #################################
 ############################################################
 
 
-def SolveModel(scenario, feedstock = 'food_and_green', savedf = True, 
+def SolveModel(scenario_name = None, feedstock = 'food_and_green', savedf = True, 
     counties = counties, landuse = rangelands, facilities = facilities,
+    
     # Scenario settings
     disposal_rate = 1,   # percent of waste to include in run
     fw_reduction = 0,    # food waste reduced/recovered pre-disposal

@@ -86,7 +86,7 @@ def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefi
 
 
     # both set geometry (see above) and plot to check it looks right
-    CA.set_geometry('county_centroid')
+    # CA.set_geometry('county_centroid')
 
 
     # CREATE FIPS ID to merge with county names
@@ -119,15 +119,15 @@ def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefi
     print("merging biomass data with CA shapefile county centroids")
 
     #POLYGONS - mostly for plotting?
-    # gbm_shp = pd.merge(CAshape, gbm, on = 'COUNTY')
-    # # Do same for technical biomass
-    # tbm_shp = pd.merge(CAshape, tbm, on = 'COUNTY')
+    gbm_shp = pd.merge(CAshape, gbm, on = 'COUNTY')
+    # Do same for technical biomass
+    tbm_shp = pd.merge(CAshape, tbm, on = 'COUNTY')
 
 
-    # COUNTY CENTROIDS
-    gbm_pts = pd.merge(CA_pts, gbm, on = 'COUNTY')
-    tbm_pts = pd.merge(CA_pts, tbm, on = 'COUNTY')
+    # # COUNTY CENTROIDS
+    # gbm_pts = pd.merge(CA_pts, gbm, on = 'COUNTY')
+    # tbm_pts = pd.merge(CA_pts, tbm, on = 'COUNTY')
 
     print("p BIOMASS PRE_PROCESSING DONE RUNNING")
 
-    return gbm_pts, tbm_pts
+    return gbm_shp, tbm_shp
