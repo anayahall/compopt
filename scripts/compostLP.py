@@ -90,7 +90,7 @@ gbm_pts, tbm_pts = MergeInventoryAndCounty(
     gross_inventory     = opj(DATA_DIR, "raw/biomass.inventory.csv"),
     technical_inventory = opj(DATA_DIR, "raw/biomass.inventory.technical.csv"),
     county_shapefile    = opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"),
-    fips_data           = opj(DATA_DIR, "interim/CA_FIPS.csv")
+    counties_popcen     = opj(DATA_DIR, "counties/CenPop2010_Mean_CO06.txt")
 )
 
 # mini gdfs of county wastes (tbm - location and MSW for 2014) 
@@ -133,7 +133,7 @@ facilities.rename(columns={'County':'COUNTY'}, inplace=True)
 rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
 rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
 
-# Fix county names! 
+# Fix county names in RANGELANDS! 
 countyIDs = pd.read_csv(opj(DATA_DIR, "interim/CA_FIPS_wcode.csv"), 
     names = ['FIPS', 'COUNTY', 'State', 'county_nam'])
 countyIDs = countyIDs[['COUNTY', 'county_nam']]
@@ -152,20 +152,20 @@ rangelands['centroid'] = rangelands['geometry'].centroid
 # SUBSET!! for testing functions
 ############################################################# 
 # # SUBSET out four counties
-counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
-    (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
-# counties = counties[0:15]
+# counties = counties[(counties['COUNTY'] == "Los Angeles") | (counties['COUNTY'] == "San Diego") |
+#     (counties['COUNTY'] == "Orange")| (counties['COUNTY'] == "Imperial")]
+# # counties = counties[0:15]
 
-# # SUBSET out four counties
-facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
-    (facilities['COUNTY'] == "Imperial")].copy()
-# too many, just select first 5
-# facilities = facilities[0:10]
+# # # SUBSET out four counties
+# facilities = facilities[(facilities['COUNTY'] == "San Diego") | (facilities['COUNTY'] == "Orange") | 
+#     (facilities['COUNTY'] == "Imperial")].copy()
+# # too many, just select first 5
+# # facilities = facilities[0:10]
 
-# # # SUBSET
-subset = ["los", "slo", "sbd"]
-rangelands = rangelands[rangelands['county_nam'].isin(subset)]
-rangelands = rangelands[0:15]
+# # # # SUBSET
+# subset = ["los", "slo", "sbd"]
+# rangelands = rangelands[rangelands['county_nam'].isin(subset)]
+# rangelands = rangelands[0:15]
 
 ############################################################
 # raise Exception("data loaded - pre optimization")
@@ -581,7 +581,7 @@ def SolveModel(scenario_name = None, feedstock = 'food_and_green', savedf = True
     c2f_values, f2r_values = SaveModelVars(c2f, f2r)
 
 
-    return {'value': val, 'cost': project_cost,  'result': -result}, county_results, c2f_values, f2r_values
+    return c2f_values, f2r_values, rangeland_app
     # return rangeland_app, cost_dict, county_results, fac_intake
 
 # r = pd.merge(rangelands, rdf, on = "COUNTY")

@@ -8,6 +8,7 @@ import pandas as pd
 import shapely as shp
 import geopandas as gpd
 import scipy as sp
+import pickle
 
 from compostLP import Haversine, Distance, Fetch, SolveModel, SaveModelVars
 
@@ -20,15 +21,46 @@ from compostLP import Haversine, Distance, Fetch, SolveModel, SaveModelVars
 # s2 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
 # 	disposal_rate = 0.5, seq_f = -357)
 
-print("DOUBLE CAPACITY****************************")
-s3 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
-		capacity_multiplier = 2, seq_f = -357)
+c2f_val, f2r_val, land_app = SolveModel(disposal_rate = 0.50) 
 
-raise Exception(" load function and run one scenario")
+# save all of these
+
+with open('c2f_quant_50.p', 'wb') as f:
+        pickle.dump(c2f_val, f)
+
+with open('f2r_quant_50.p', 'wb') as f:
+        pickle.dump(f2r_val, f)
+
+with open('land_app_quant_50.p', 'wb') as f:
+        pickle.dump(land_app, f)
+
+# then plot the first two with flow figure
+
+# for land app- need to merge with rangeland gdf
+# set data path
+DATA_DIR = "/Users/anayahall/projects/compopt/data"
+
+# read in data
+# rangeland polygons
+rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
+# county polygons
+
+# first turn into df
+land_df = pd.DataFrame.from_dict(land_app, orient = 'index')
+# need to get OBJECTID as str before merge
+rangelands.OBJECTID = rangelands.OBJECTID.astype(str)
+# merge land_app with rangeland geodataframe 
+rangelands_app = pd.merge(rangelands, land_df, on = 'OBJECTID')
+
+rangelands_app.to_file("rangelands_app_75.shp")
+
+raise Exception(" loaded function, ran scenario, prepped for plotting!!!")
 
 s1 = SolveModel(scenario = "S_high", feedstock = "food_and_green", 
 		seq_f = -357)
-
+print("DOUBLE CAPACITY****************************")
+s3 = SolveModel(scenario = "Cap_high", feedstock = "food_and_green", 
+		capacity_multiplier = 2, seq_f = -357)
 
 print("-------------------------------------")
 

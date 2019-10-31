@@ -9,6 +9,8 @@ import pandas as pd
 import shapely as shp
 import geopandas as gpd
 import scipy as sp
+import shapely as shp
+import json
 
 from biomass_preprocessing import MergeInventoryAndCounty
 
@@ -58,7 +60,7 @@ gbm_pts, tbm_pts = MergeInventoryAndCounty(
     gross_inventory     = opj(DATA_DIR, "raw/biomass.inventory.csv"),
     technical_inventory = opj(DATA_DIR, "raw/biomass.inventory.technical.csv"),
     county_shapefile    = opj(DATA_DIR, "raw/CA_Counties/CA_Counties_TIGER2016.shp"),
-    fips_data           = opj(DATA_DIR, "interim/CA_FIPS.csv")
+    counties_popcen     = opj(DATA_DIR, "counties/CenPop2010_Mean_CO06.txt")
 )
 
 counties = tbm_pts # could change to GBM
@@ -75,15 +77,17 @@ facilities = gpd.read_file(opj(DATA_DIR, "clean/clean_swis.shp"))
 # Import rangelands
 # (partially dissolved subset)
 # rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/grazingland_dis/CA_grazingland.shp"))
+
+
 # (all individual rangelands)
 rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
 rangelands = rangelands.to_crs(epsg=4326) # make sure this is read in degrees (WGS84)
 
 # Fix county names! 
-# countyIDs = pd.read_csv(opj(DATA_DIR, "interim/CA_FIPS_wcode.csv"), 
-#     names = ['FIPS', 'COUNTY', 'State', 'county_nam'])
-# countyIDs = countyIDs[['COUNTY', 'county_nam']]
-# rangelands = pd.merge(rangelands, countyIDs, on = 'county_nam')
+countyIDs = pd.read_csv(opj(DATA_DIR, "interim/CA_FIPS_wcode.csv"), 
+    names = ['FIPS', 'COUNTY', 'State', 'county_nam'])
+countyIDs = countyIDs[['COUNTY', 'county_nam']]
+rangelands = pd.merge(rangelands, countyIDs, on = 'county_nam')
 
 
 # convert area capacity into volume capacity
@@ -95,6 +99,13 @@ rangelands['capacity_m3'] = rangelands['area_ha'] * 63.5 # use this metric for m
 
 # # Dissolve into single polygon per county
 # rangelands = rangelands.dissolve(by='COUNTY')
+
+# raise Exception("data loaded- pre distance calc --- test output of cloc = Fetch(counties, 'COUNTY', county, 'county_centroid')")
+
+
+# gdf = geopandas.GeoDataFrame(
+#     df, geometry=geopandas.points_from_xy(df.Longitude, df.Latitude))
+
 
 
 # estimate centroid
@@ -116,6 +127,8 @@ for county in counties['COUNTY']:
         c2f[county][facility]['trans_dist'] = Distance(cloc,floc)*detour_factor
         # print(c2f[county][facility]['trans_dist'])
 
+print("C2f distances calculated")
+
 f2r = {}
 for facility in facilities['SwisNo']:
     f2r[facility] = {}
@@ -128,6 +141,7 @@ for facility in facilities['SwisNo']:
         f2r[facility][r_string]['trans_dist'] = Distance(floc,rloc)*detour_factor
         print(f2r[facility][r_string]['trans_dist'])
 
+print("f2r distances calculated")
 
 avgDict_f2r = {}
 for facility in f2r.keys():
@@ -154,11 +168,17 @@ for county in c2f.keys():
 
 # fp = "/Users/anayahall/projects/compopt/data"
 
-import json
+
 with open('c2f_DIST.json', 'w') as fp:
     json.dump(c2f, fp)
 
 with open('f2r_DIST.json', 'w') as fp:
     json.dump(f2r, fp)
+
+
+
+################################
+
+
 
 

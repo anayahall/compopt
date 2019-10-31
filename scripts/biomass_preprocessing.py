@@ -6,15 +6,18 @@ import pandas as pd
 import os
 import geopandas as gpd
 from fxns import epsg_meters
+import shapely as shp
 
-def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefile, fips_data):
+def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefile, counties_popcen):
     """
         Cleans biomass inventory data and merges with county shapefiles
         gross_inventory      - gross estimate of biomass inventory
         technical_inventory  - technical estimate of biomass inventory
         county_shapefile     - shapefile of county polygons
+        counties_popcen      - csv population-weighted county centroids
 
-        Returns: cleaned, spatial biomass data (assigned to county centroids)
+        Returns: cleaned, spatial biomass data (assigned to pop-weighted 
+        county centroids and county polygons)
     """
 
     ##################################################################
@@ -22,7 +25,7 @@ def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefi
     # GROSS inventory
     gbm = pd.read_csv(gross_inventory)
 
-    # TECHNICAL inventory
+    # TECHNIcounty_shapeL inventory
     tbm = pd.read_csv(technical_inventory)
 
 
@@ -73,61 +76,29 @@ def MergeInventoryAndCounty(gross_inventory, technical_inventory, county_shapefi
     tbm['disposal_wm3'] = tbm['wettons'] / (1.30795*(1/2.24))
 
 
-    # # now load SHAPEFILE for all CA COUNTIES to merge this
-    # print("p Read in CA COUNTIES shapefile and reproject")
-    CA = gpd.read_file(county_shapefile)
-    CA= CA.to_crs(epsg=4326)
-    # CA.head()
+    # # now load SHAPEFILE for all county_shape COUNTIES to merge this
+    # print("p Read in county_shape COUNTIES shapefile and reproject")
+    county_shape = gpd.read_file(county_shapefile)
+    county_shape.rename(columns = {'NAME': 'COUNTY'}, inplace=True)
+    county_shape= county_shape.to_crs(epsg=4326)
+    county_shape['county_centroid'] = county_shape['geometry'].centroid 
 
-    # Create new geoseries of county centroids - 
-    # note, technically still a panda series until 'set_geomtry()' is called
-    CA['county_centroid'] = CA['geometry'].centroid
-    # CA.tail()
+    # ALSO LOAD IN CSV of population-weighted county centroids - use this not geographic centroid!!
+    counties_popcen = pd.read_csv(counties_popcen) # NEW - population weighted means!
+    counties_popcen.rename(columns = {'LATITUDE': 'lat', 'LONGITUDE': 'lon', 'COUNAME': 'COUNTY'}, inplace=True)
+    counties_popcen['county_centroid'] = [shp.geometry.Point(xy) for xy in 
+            zip(counties_popcen.lon, counties_popcen.lat)]
 
-
-    # both set geometry (see above) and plot to check it looks right
-    # CA.set_geometry('county_centroid')
-
-
-    # CREATE FIPS ID to merge with county names
-    CA['FIPS']=CA['STATEFP'].astype(str)+CA['COUNTYFP']
-
-    # get rid of leading zero
-    CA.FIPS = [s.lstrip("0") for s in CA.FIPS]
-
-    #convert to integer for merging below
-    CA.FIPS = [int(i) for i in CA.FIPS]
-    #print(CA.head())
-
-
-    # NEED TO BRING IN COUNTY NAMES TO MERGE WITH BIOMASS DATA
-    countyIDs = pd.read_csv(fips_data, names = ["FIPS", "COUNTY", "State"])
-    #print(countyIDs)
-
-    #print(type(countyIDs.FIPS[0]))
-    #print(type(CA.FIPS[0]))
-
-    CAshape = pd.merge(CA, countyIDs, on = 'FIPS')
-
-    # Create subset of just county centroid points NOT POLYGONS
-    CAshape.head()
-
-    CA_pts = CAshape.set_geometry('county_centroid')[['county_centroid','FIPS', 'COUNTY', 'ALAND', 'AWATER']]
-
-    # now can merge with biomass data finally!!!
-    #print(gbm.columns)
-    print("merging biomass data with CA shapefile county centroids")
-
-    #POLYGONS - mostly for plotting?
-    gbm_shp = pd.merge(CAshape, gbm, on = 'COUNTY')
+    #COUNTY POLYGONS with BIOMASS DATA(mostly for plotting)
+    gbm_shp = pd.merge(county_shape, gbm, on = 'COUNTY')
     # Do same for technical biomass
-    tbm_shp = pd.merge(CAshape, tbm, on = 'COUNTY')
+    tbm_shp = pd.merge(county_shape, tbm, on = 'COUNTY')
 
 
-    # # COUNTY CENTROIDS
-    # gbm_pts = pd.merge(CA_pts, gbm, on = 'COUNTY')
-    # tbm_pts = pd.merge(CA_pts, tbm, on = 'COUNTY')
+    # POPULATION-WEIGHTED COUNTY CENTROIDS with BIOMASS DATA
+    gbm_pts = pd.merge(counties_popcen, gbm, on = 'COUNTY')
+    tbm_pts = pd.merge(counties_popcen, tbm, on = 'COUNTY')
 
     print("p BIOMASS PRE_PROCESSING DONE RUNNING")
 
-    return gbm_shp, tbm_shp
+    return gbm_pts, tbm_pts
