@@ -26,6 +26,8 @@ def Fetch(df, key_col, key, value):
 # set data path
 DATA_DIR = "/Users/anayahall/projects/compopt/data"
 
+print("LOADING DATA")
+
 # read in data
 # rangeland polygons
 rangelands = gpd.read_file(opj(DATA_DIR, "raw/CA_FMMP_G/gl_bycounty/grazingland_county.shp"))
@@ -84,15 +86,20 @@ for k, v in c2f_dict.items():
 np.quantile(dictlist, [.05, .25, .5 , .75, .95])
 # array([ 55278.1, 130799. , 253441. , 377828.5, 450098.5])
 
+
+
+print("Starting Plot")
+
 # PLOT
-fig, ax = plt.subplots(figsize = (10,10))
-county_shape.plot(ax = ax, color = "lightgrey", linewidth=1, edgecolor = "white")
-ax.plot(swis_df['lon'], swis_df['lat'], 'kx', markersize = 3, label = 'Compost Facility')
+fig, ax = plt.subplots(ncols = 2, figsize = (18,8))
+county_shape.plot(ax = ax[0], color = "lightgrey", linewidth=1, edgecolor = "white")
+ax[0].scatter(swis_df['lon'], swis_df['lat'], s = swis_df['cap_m3']/5000, 
+    label = 'Compost Facility', color = 'dimgrey')
 for i in counties_popcen.index:
     county_name = counties_popcen['COUNTY'].iloc[counties_popcen.index == i].values[0]
     c_lon = counties_popcen['lon'].iloc[counties_popcen.index == i].values[0]
     c_lat = counties_popcen['lat'].iloc[counties_popcen.index == i].values[0]
-    _ = ax.plot(c_lon, c_lat, c= 'white', marker='+', markersize = 3)
+    _ = ax[0].plot(c_lon, c_lat, c= 'dimgrey', marker='x', markersize = 5)
     # print('*************')
     # print(county_name)
     for j in swis_df.index:
@@ -105,34 +112,39 @@ for i in counties_popcen.index:
         # q = c2f_dict.loc[c2f_dict.index == f_no, county_name].values[0]
         # q = c2f_dict[i, j] # USE THIS FOR TEST MATRIX ONLY
         if q > 1000000:
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=5.5)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=5.5)
         elif q > 200000:
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=3.5)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=3.5)
         elif q > 50000:
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=2.5)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=2.5)
         elif q > 20000:
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=1.5)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=1.5)
         elif q > 2000: 
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=0.75)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=0.75)
         elif q > 200: 
-            _ = ax.plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=0.5)
+            _ = ax[0].plot([c_lon, f_lon], [c_lat, f_lat], 'm-', alpha = 0.6, linewidth=0.5)
 
 # plot plot plot
 # plot
 
-ax.plot([], [], '+', color = 'darkgrey', markersize = 3, label = 'County Centroid')
-ax.plot([], [], 'm-', alpha = 0.6, linewidth=2.5, label = 'Flow')
-ax.set_xlabel('Longitude')
-ax.set_ylabel('Latitude')
-ax.set_title("Feedstock Flow from County Centroid to Compost Facility")
-ax.legend()
-fig.savefig('Maps/C2Fflow_100.png')       
-plt.show()
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=0.5, label = '0 - 2000')
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=0.75, label = '2000 - 20000')
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=1.5, label = '20000 - 50000')
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=2.5, label = '20000 - 50000')
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=3.5, label = '50000 - 200000')
+ax[0].plot([], [], 'm-', alpha = 0.6, linewidth=5.5, label = '200000 - 1000000')
+ax[0].plot([], [], 'x', color = 'dimgrey', markersize = 5, label = 'County Centroid')
+ax[0].set_xlabel('Longitude')
+ax[0].set_ylabel('Latitude')
+ax[0].set_title("Feedstock Flow from County Centroid to Facility")
+ax[0].legend()
+# fig.savefig('Maps/C2Fflow_100.png')       
+# plt.show()
 
 #################################################################################
 # NOW REDO for F2R?
 
-
+# raise Exception(" first plot") 
 ## LOAD REAL DATA HERE!!!! 
 # will be a dictionary 
 with open('f2r_quant.p', 'rb') as f:
@@ -152,10 +164,11 @@ np.quantile(dictlist, [.05, .25, .5 , .75, .95])
 # array([  1317.2 ,   9618.5 ,  26591.  ,  63611.  , 140616.85])
 
 
-# PLOT
-fig, ax = plt.subplots(figsize = (10,10))
-county_shape.plot(ax = ax, color = "lightgrey", linewidth=1, edgecolor = "white")
-ax.plot(swis_df['lon'], swis_df['lat'], 'kx', markersize = 3, label = 'Compost Facility')
+# PLOT #2 
+county_shape.plot(ax = ax[1], color = "lightgrey", linewidth=1, edgecolor = "white")
+scatter = ax[1].scatter(swis_df['lon'], swis_df['lat'], s = swis_df['cap_m3']/5000, 
+    label = 'Compost Facility', color = 'dimgrey')
+rangelands.plot(ax = ax[1], color = 'lightgreen', alpha = 0.7, label = 'Rangeland')
 for j in swis_df.index:
     f_no = swis_df['SwisNo'].iloc[swis_df.index == j].values[0]
     f_lon = swis_df['lon'].iloc[swis_df.index == j].values[0]
@@ -172,26 +185,34 @@ for j in swis_df.index:
         # q = c2fmatrix.loc[c2fmatrix.index == f_no, county_name].values[0]
         # q = c2fmatrix[i, j] # USE THIS FOR TEST MATRIX ONLY
             if q > 100000:
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=5.5)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=4.5)
             elif q > 600000:
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=3.5)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=3.5)
             elif q > 25000:
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=2.5)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=2.5)
             elif q > 10000:
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=1.5)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=1.5)
             elif q > 2000: 
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=0.75)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=0.75)
             elif q > 200: 
-                _ = ax.plot([f_lon, r_lon], [f_lat, r_lat], 'c-', alpha = 0.6, linewidth=0.5)
+                _ = ax[1].plot([f_lon, r_lon], [f_lat, r_lat], 'b-', alpha = 0.6, linewidth=0.5)
 
 # plot plot plot
 # plot
 # ax.plot([], [], '+', color = 'darkgrey', markersize = 3, label = 'County Centroid')
-ax.plot([], [], 'm-', alpha = 0.6, linewidth=2.5, label = 'Flow')
-ax.set_xlabel('Longitude')
-ax.set_ylabel('Latitude')
-ax.set_title("Feedstock Flow from Facility to rangeland Facility")
-ax.legend()
-# fig.savefig('Maps/C2Fflow_100.png')       
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=0.5, label = '0 - 2000')
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=0.75, label = '2000 - 10000')
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=1.5, label = '10000 - 25000')
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=2.5, label = '25000 - 60000')
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=3.5, label = '60000 - 100000')
+ax[1].plot([], [], 'b-', alpha = 0.6, linewidth=4.5, label = '100000+ ')
+ax[1].set_xlabel('Longitude')
+ax[1].set_ylabel('Latitude')
+ax[1].set_title("Compost Flow from Facility to Rangeland")
+ax[1].legend()
+# handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+# legend2 = ax[1].legend(handles, labels, loc="upper right", title="Sizes")
+
+fig.savefig('Maps/Flow_100.png')       
 plt.show()
 
