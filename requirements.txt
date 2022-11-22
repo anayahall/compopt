@@ -111,7 +111,7 @@ patsy==0.4.1
 pep8==1.7.0
 pexpect==4.2.1
 pickleshare==0.7.4
-Pillow==4.1.1
+Pillow==9.3.0
 -e git+https://github.com/Project-Platypus/Platypus.git@a45db6ebd2aff8056c7d20b7b9cfdd64a2fa1fd9#egg=Platypus_Opt
 plotly==3.1.0
 ply==3.10
