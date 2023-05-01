@@ -45,7 +45,7 @@ entrypoints==0.2.2
 et-xmlfile==1.0.1
 fastcache==1.0.2
 Fiona==1.8.4
-Flask==0.10.1
+Flask==2.3.2
 Flask-Cors==3.0.2
 future==0.17.1
 geographiclib==1.49
